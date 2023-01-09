@@ -1,1 +1,1 @@
-test readnme
+test readme
