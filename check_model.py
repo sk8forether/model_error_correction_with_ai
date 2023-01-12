@@ -11,8 +11,8 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-main_dir = "./model_error_correction"
-python_exe = "./python"
+main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
+python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 
 def int_float_str(s):
     '''
@@ -63,6 +63,8 @@ def get_test_dataset(hyperparam, num_workers=0):
         #train_valid_slice = slice(40+368,None)
     elif testset==2:
         test_slice = slice(None,None) #for sample use
+    elif testset==3:
+        test_slice = slice(-4*4,None) # for Sergey; indp test with the last 4 days
     else:
         logging.error("rank: {}, testset values {} not supported".format(rank, testset))
         exit()
@@ -87,6 +89,8 @@ def get_train_dataset(hyperparam, num_workers=0):
         train_valid_slice = slice(40+368,None)
     elif testset==2:
         train_valid_slice = slice(None,None) #for sample use
+    elif testset==3: # for Sergey; train with the penultimate week. reserve and split last week for 3-day validation and 4-day indp test.
+        train_valid_slice = slice(-14*4,-4*4) # last 14 days to 4th to last day. 
     else:
         logging.error("rank: {}, testset values {} not supported".format(rank, testset))
         exit()
