@@ -11,8 +11,9 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-main_dir = "./model_error_correction"
-python_exe = "./python"
+#main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
+main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
+python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 
 def int_float_str(s):
     '''
@@ -63,6 +64,8 @@ def get_test_dataset(hyperparam, num_workers=0):
         #train_valid_slice = slice(40+368,None)
     elif testset==2:
         test_slice = slice(None,None) #for sample use
+    elif testset==3:
+        test_slice = slice(-4*4,None) # for Sergey; indp test with the last 4 days
     else:
         logging.error("rank: {}, testset values {} not supported".format(rank, testset))
         exit()
@@ -87,6 +90,8 @@ def get_train_dataset(hyperparam, num_workers=0):
         train_valid_slice = slice(40+368,None)
     elif testset==2:
         train_valid_slice = slice(None,None) #for sample use
+    elif testset==3: # for Sergey; train with the penultimate week. reserve and split last week for 3-day validation and 4-day indp test.
+        train_valid_slice = slice(-14*4,-4*4) # last 14 days to 4th to last day. 
     else:
         logging.error("rank: {}, testset values {} not supported".format(rank, testset))
         exit()
@@ -335,7 +340,7 @@ def sub_saliency(filename, if_renew=False):
         os.system(f"echo from check_model import saliency > {main_dir}/tmp.py")
         os.system('''echo "saliency(\'{}\')" >> {}/tmp.py'''.format(filename,main_dir))
 
-        submitline = f'sbatch --wait -t 30:0:0 -A rda-ddbcufs -p fge -N 1 --output {main_dir}/eval_saliency.out --wrap "{python_exe} -u  {main_dir}/tmp.py " '
+        submitline = f'sbatch --wait -t 30:0:0 -p fgewf --qos=windfall -N 1 --output {main_dir}/eval_saliency.out --wrap "{python_exe} -u  {main_dir}/tmp.py " '
         os.system(submitline)
     
     else:

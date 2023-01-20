@@ -50,13 +50,15 @@ def _train_(rank,
     
     ######################################################################    
     # Train_Valid DATASET
-    # define the training and validation index range
-    if testset==0:
+    # define the training and validation index range (indp test range defined in check_model)
+    if testset==0:  # skip first 10 days, train with following 365 days. indp test with the rest.
         train_valid_slice = slice(40,40+1460)
-    elif testset==1:
+    elif testset==1: # skip first 10 days, train with the last 365 days. indp test with the rest.
         train_valid_slice = slice(40+367,None)
-    elif testset==2:
-        train_valid_slice = slice(None,None) # for sample use
+    elif testset==2: # for sample use
+        train_valid_slice = slice(None,None)
+    elif testset==3: # for Sergey; train with the penultimate week. reserve and split last week for 3-day validation and 4-day indp test.
+        train_valid_slice = slice(-14*4,-4*4) # last 14 days to 4th to last day. 
     else:
         logging.error("rank: {}, testset values {} not supported".format(rank, testset))
         exit()
@@ -74,16 +76,10 @@ def _train_(rank,
     logging.info("rank: {}, volumn size: {}, dataset length: {}".format(rank, volumn_size, len(train_valid_set)))
     
     # Set up data loader
-    #inds = list(range(1460))
-    inds = list(range(3)) # for sample use
-    logging.info('rank: {}, fixed 61 samples for each season'.format(rank))
     
     # split training and validation data range
-    #valid_inds = list(range(0,61)) + list(range(365,365+61)) + list(range(365*2,365*2+61))+ list(range(365*3,365*3+61))
-    #train_inds = list(set(inds)-set(valid_inds))
-    valid_inds = list(range(3)) # for sample use
-    train_inds = list(range(3)) # for sample use
-    
+    train_inds = list(range(0,40-3*4)) # index for previously sliced data
+    valid_inds = list(range(40-3*4,40))
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     
@@ -252,6 +248,8 @@ class Dataset_np(data.Dataset):
             slice_sfc = list(range(nbc+1,nbc+8))
         elif vars_sfc == 'subset': # 509+21
             slice_sfc = slice(0,nbc)
+        elif vars_sfc == 'online': # 'csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land' +7
+            slice_sfc = [14,15,16,17,18,19,20]+list(range(nbc+1,nbc+8))
         
         # slicing output variables
         if vars_out == 't':
@@ -269,7 +267,7 @@ class Dataset_np(data.Dataset):
         elif vars_out == 'oz':
             slice_out = slice(127*6+1,127*7+1)
         
-        ddd='./npys/ifs' # dataset location
+        ddd='/scratch2/NCEPDEV/stmp1/Tse-chun.Chen/anal_inc/npys/ifs' # dataset location
             
         self.ins = []
         # load data in memory map mode (allows slicing without actually loading the data)

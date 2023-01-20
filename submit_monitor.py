@@ -1,9 +1,9 @@
 import os
 import sys
 
-userid     = "USERID" 
-main_dir = "./model_error_correction"
-python_exe = "./python"
+userid     = "Sergey.Frolov" 
+main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction"
+python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 
 def monitor():
     '''Submit and Monitor individual training tasks. 
@@ -25,17 +25,17 @@ def monitor():
     # define hyperparameter search space
     params_space={
                   'vars_f06':     ['tpsuvq',],
-                  'vars_sfc':     ['subset-cyc',],
+                  'vars_sfc':     ['online',],
                   'vars_out':     ['t','q','u','v'],
-                  'testset' :     [2],
+                  'testset' :     [3],
                   'kernel_sizes': ['1'], 
-                  'channels':     ['128',],
-                  'n_conv'  :     [2,],
+                  'channels':     ['4096',],
+                  'n_conv'  :     [3,],
                   'p'   :         [0.25,], 
                   'bs'  :         [8],
                   'loss':         ['mse'], 
-                  'lr'  :         [1e-5,], 
-                  'wd'  :         [0.01,0.05,],
+                  'lr'  :         [1e-4,], 
+                  'wd'  :         [0.05,],
                   'trunc':        ['sub'],
                   }
 
@@ -145,7 +145,7 @@ def monitor():
 
         os.system(f"> {main_dir}/slurm_out/{jobfile}.out") # clear previous log
 
-        submitline = "sbatch -t 30:0:0 -A rda-ddbcufs -p fge -N 1 --job-name {} --output {}/slurm_out/{}.out --wrap '{} -u {}' ".format(jobfile, main_dir, jobfile, python_exe, jobdir+jobfile) # job submit line. modify as needed.
+        submitline = "sbatch -t 30:0:0 -A gsienkf -p fgewf --qos=windfall -N 1 --job-name {} --output {}/slurm_out/{}.out --wrap '{} -u {}' ".format(jobfile, main_dir, jobfile, python_exe, jobdir+jobfile) # job submit line. modify as needed.
         os.system(submitline) # submit job
         
 if __name__ == "__main__":
