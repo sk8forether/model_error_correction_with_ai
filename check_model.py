@@ -11,7 +11,8 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
+#main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
+main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
 python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 
 def int_float_str(s):
@@ -339,7 +340,7 @@ def sub_saliency(filename, if_renew=False):
         os.system(f"echo from check_model import saliency > {main_dir}/tmp.py")
         os.system('''echo "saliency(\'{}\')" >> {}/tmp.py'''.format(filename,main_dir))
 
-        submitline = f'sbatch --wait -t 30:0:0 -A rda-ddbcufs -p fge -N 1 --output {main_dir}/eval_saliency.out --wrap "{python_exe} -u  {main_dir}/tmp.py " '
+        submitline = f'sbatch --wait -t 30:0:0 -p fgewf --qos=windfall -N 1 --output {main_dir}/eval_saliency.out --wrap "{python_exe} -u  {main_dir}/tmp.py " '
         os.system(submitline)
     
     else:

@@ -1,8 +1,8 @@
 import os
 import sys
 
-userid     = "Tse-chun.Chen" 
-main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
+userid     = "Sergey.Frolov" 
+main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction"
 python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 
 def monitor():
@@ -145,7 +145,7 @@ def monitor():
 
         os.system(f"> {main_dir}/slurm_out/{jobfile}.out") # clear previous log
 
-        submitline = "sbatch -t 30:0:0 -A rda-ddbcufs -p fge -N 1 --job-name {} --output {}/slurm_out/{}.out --wrap '{} -u {}' ".format(jobfile, main_dir, jobfile, python_exe, jobdir+jobfile) # job submit line. modify as needed.
+        submitline = "sbatch -t 30:0:0 -A gsienkf -p fgewf --qos=windfall -N 1 --job-name {} --output {}/slurm_out/{}.out --wrap '{} -u {}' ".format(jobfile, main_dir, jobfile, python_exe, jobdir+jobfile) # job submit line. modify as needed.
         os.system(submitline) # submit job
         
 if __name__ == "__main__":
