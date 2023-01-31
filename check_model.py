@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
+from netCDF4 import Dataset
 
 #main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
 main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
