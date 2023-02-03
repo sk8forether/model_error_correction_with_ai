@@ -1,9 +1,10 @@
 import os
 import sys
 
-userid     = "Sergey.Frolov" 
+userid     = os.environ.get("USER") 
 main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction"
-python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
+#python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
+python_exe = os.environ.get('MYPYTHON')
 
 def monitor():
     '''Submit and Monitor individual training tasks. 
