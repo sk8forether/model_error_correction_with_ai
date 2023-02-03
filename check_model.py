@@ -13,8 +13,11 @@ from torch.utils.data import DataLoader
 from netCDF4 import Dataset
 
 #main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
-main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
-python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
+#main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
+#python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
+main_dir = "./"
+python_exe = os.environ.get('MYPYTHON')
+slurm_account = os.environ.get('SLURM_ACCOUNT')
 
 def int_float_str(s):
     '''
@@ -295,7 +298,7 @@ def sub_eval_model(filename, if_get_norm=False, if_renew=True, if_wait=True):
         prefix = 'sbatch'
         if if_wait: # block the current process to wait for the job to complete
             prefix = 'sbatch --wait'
-        submitline = prefix + f' -t 30:0 -A gsienkf -p bigmem -N 1 --output {main_dir}/eval_model.out --wrap "{python_exe} -u  {main_dir}/tmp.py " '
+        submitline = prefix + f' -t 30:0 -A {slurm_account} -p bigmem -N 1 --output {main_dir}/eval_model.out --wrap "{python_exe} -u  {main_dir}/tmp.py " '
         os.system(submitline)
     
     else:
@@ -346,7 +349,7 @@ def sub_collect_models(if_renew=True, df='df_low-res-config', if_wait=True):
         prefix = '''sbatch'''
         if if_wait:
             prefix = '''sbatch --wait'''
-        submitline = prefix+f''' -t 120:0 -A gsienkf -p hera -N 1 --output {main_dir}/collect_models.out --wrap "{python_exe} -u -c 'from check_model import collect_models
+        submitline = prefix+f''' -t 120:0 -A {slurm_account} -p hera -N 1 --output {main_dir}/collect_models.out --wrap "{python_exe} -u -c 'from check_model import collect_models
 collect_models()'  " '''
         os.system(submitline)
 

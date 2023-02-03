@@ -2,9 +2,6 @@
 training.py --- ddd='/scratch2/NCEPDEV/stmp1/Tse-chun.Chen/anal_inc/npys/ifs' # dataset location
 submit_monitor.py --- userid, main_dir, python_exe, sbatch
 
-
-
-
 ########## add new training/test options ##########
 
 check_model.py

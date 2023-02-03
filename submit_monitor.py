@@ -2,9 +2,13 @@ import os
 import sys
 
 userid     = os.environ.get("USER") 
-main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction"
+#main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction"
 #python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
+main_dir = "./"
+if not os.path.exists(main_dir+'/jobs/') os.mkdir(main_dir+'/jobs/')
+if not os.path.exists(main_dir+'/slurm_out/') os.mkdir(main_dir+'/slurm_out/')
 python_exe = os.environ.get('MYPYTHON')
+slurm_account = os.environ.get('SLURM_ACCOUNT')
 
 def monitor():
     '''Submit and Monitor individual training tasks. 
@@ -146,7 +150,7 @@ def monitor():
 
         os.system(f"> {main_dir}/slurm_out/{jobfile}.out") # clear previous log
 
-        submitline = "sbatch -t 30:0:0 -A gsienkf -p fgewf --qos=windfall -N 1 --job-name {} --output {}/slurm_out/{}.out --wrap '{} -u {}' ".format(jobfile, main_dir, jobfile, python_exe, jobdir+jobfile) # job submit line. modify as needed.
+        submitline = "sbatch -t 30:0:0 -A {slurm_account} -p fgewf --qos=windfall -N 1 --job-name {} --output {}/slurm_out/{}.out --wrap '{} -u {}' ".format(jobfile, main_dir, jobfile, python_exe, jobdir+jobfile) # job submit line. modify as needed.
         os.system(submitline) # submit job
         
 if __name__ == "__main__":
