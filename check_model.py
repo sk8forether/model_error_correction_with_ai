@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
+from netCDF4 import Dataset
 
 #main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
 main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
@@ -152,7 +153,72 @@ def read_checkfile(filename):
         logging.error("Failed reading: " + filename)
     except (ValueError):
         logging.error("OOM: " + filename)
-        
+       
+def model_to_nc(filename, if_return_nc=False, if_norm=True,):
+    logging.info('################################################')
+    logging.info('## output coeff. to nc file                     ')
+    logging.info('################################################')
+
+    checkfile = torch.load(filename, map_location=torch.device('cpu'))
+
+    coeff = list(checkfile['model_state_dict'].items())
+
+    # get a list of sizes of each layer
+    n_nodes = [coeff[0][1].numpy().shape[1]]
+    for n in range(1,len(coeff),2):
+        n_nodes.append(coeff[n][1].numpy().shape[0])
+
+    logging.info(n_nodes)
+
+    ncfile = Dataset('nn.nc', mode='w', format='NETCDF4')
+    ncfile.title    = 'NN coefficients'
+    ncfile.subtitle = filename
+    ncfile.nn_sizes  = np.array(n_nodes)
+    hyperparam = read_hyperparam(filename)
+    ncfile.var_out  = hyperparam['vars_out']
+
+    if if_norm:
+        loader   = get_test_dataset(hyperparam)
+        mean_in  = loader.dataset.mean_in.numpy().squeeze()
+        std_in   = loader.dataset.std_in.numpy().squeeze()
+        mean_out = loader.dataset.mean_out.numpy().squeeze()
+        std_out  = loader.dataset.std_out.numpy().squeeze()
+
+    # create nc dimension
+    for n,s in enumerate(n_nodes):
+        ncfile.createDimension(f'layer{n}', s)
+
+    # create nc variables
+    precision = np.float32
+    contiguous = True
+    for n in range(int(len(coeff)/2)):
+        w = coeff[n*2][1].numpy().squeeze()
+        b = coeff[n*2+1][1].numpy().squeeze()
+
+        if (n==0) & if_norm: # input normalization
+            wt = ncfile.createVariable(f'w{n}', precision, (f'layer{n}',f'layer{n+1}'),contiguous=contiguous)
+            wt[:,:] = precision((w/std_in).T)
+            bs = ncfile.createVariable(f'b{n}', precision, (f'layer{n+1}'),contiguous=contiguous)
+            bs[:] = precision(-np.dot(w,mean_in/std_in) + b)
+        elif (n==int(len(coeff)/2)-1) & if_norm: # output normalization
+            wt = ncfile.createVariable(f'w{n}', precision, (f'layer{n}',f'layer{n+1}'),contiguous=contiguous)
+            wt[:,:] = precision(w.T*std_out)
+            bs = ncfile.createVariable(f'b{n}', precision, (f'layer{n+1}'),contiguous=contiguous)
+            bs[:] = precision(b*std_out + mean_out)
+        else:
+            wt = ncfile.createVariable(f'w{n}', precision, (f'layer{n}',f'layer{n+1}'),contiguous=contiguous)
+            wt[:,:] = precision(w.T)
+            bs = ncfile.createVariable(f'b{n}', precision, (f'layer{n+1}'),contiguous=contiguous)
+            bs[:] = precision(b)
+
+    logging.info(ncfile)
+
+    if if_return_nc:
+        return ncfile
+    else:
+        ncfile.close()
+
+ 
 def read_model(filename, if_hyperparam=False, if_iosize=False):
     '''initialize model from checkpoint file'''
     logging.info('################################################')
