@@ -1,1 +1,8 @@
-/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python submit_monitor.py
+cd code
+source setenv.sh
+cd -
+
+mkdir checks/ npys
+
+$MYPYTHON code/submit_monitor.py
+$MYPYTHON code/eval_models.py
