@@ -2,7 +2,8 @@ cd code
 source setenv.sh
 cd -
 
-mkdir checks/ npys
+#rm checks/* jobs/* npys/* slurm_out/*
+mkdir checks jobs npys slurm_out
 
-$MYPYTHON code/submit_monitor.py
-$MYPYTHON code/eval_models.py
+$MYPYTHON ${CODEDIR}/submit_monitor.py
+$MYPYTHON ${CODEDIR}/eval_models.py

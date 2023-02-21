@@ -27,24 +27,12 @@ def monitor():
     
     from torch import load
     import numpy as np
+    import json
 
 
     # define hyperparameter search space
-    params_space={
-                  'vars_f06':     ['tpsuvq',],
-                  'vars_sfc':     ['online',],
-                  'vars_out':     ['t','q','u','v'],
-                  'testset' :     [3],
-                  'kernel_sizes': ['1'], 
-                  'channels':     ['4096',],
-                  'n_conv'  :     [3,],
-                  'p'   :         [0.25,], 
-                  'bs'  :         [8],
-                  'loss':         ['mse'], 
-                  'lr'  :         [1e-4,], 
-                  'wd'  :         [0.05,],
-                  'trunc':        ['sub'],
-                  }
+    with open('params_space.dict') as json_file:
+      params_space=json.loads(json_file.read())
 
     # construct param_list, which contains all combinations of hyper search space.
     keys = params_space.keys()
