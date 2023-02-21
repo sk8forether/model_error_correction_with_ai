@@ -11,6 +11,9 @@
                   "loss":         ["mse"],
                   "lr"  :         [1e-4],
                   "wd"  :         [0.05],
-                  "trunc":        ["sub"]
+                  "trunc":        ["sub"],
+                  "end_of_training_day": [463],
+                  "training_validation_length_days": [14],
+                  "training_to_validation_ratio": [0.7]
                   }
 

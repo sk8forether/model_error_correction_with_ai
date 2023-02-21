@@ -5,6 +5,8 @@ import time
 import logging
 logging.basicConfig(level=logging.INFO)
 
+f = open('evaluate_model.test','w')
+
 def execute(if_renew):
   for var in ['t','q','u','v']: # loop through variables
     time.sleep(5)
@@ -19,6 +21,7 @@ def execute(if_renew):
         #print(filename)
     else:
         y_pred, y=sub_eval_model(filename,if_renew=False,if_wait=True) # read from previous evaluation (if exists) and output
+        f.write("Variable {var} MSE: {mse:.5f}\n".format(var=var, mse=np.mean((y-y_pred)**2)))
 
 execute(True)
 execute(False)

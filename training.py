@@ -54,6 +54,7 @@ def _train_(rank,
     # define the training and validation index range (indp test range defined in check_model)
     splits = test_train_valid_splits(testset)
     train_valid_slice = splits["train_valid_slice"]
+    training_to_validation_ratio = splits["training_to_validation_ratio"]
 
     logging.info('rank: {}, Generating train_valid_set'.format(rank))
     Dataset = Dataset_np
@@ -70,8 +71,8 @@ def _train_(rank,
     # Set up data loader
     
     # split training and validation data range
-    train_inds = list(range(0,40-3*4)) # index for previously sliced data
-    valid_inds = list(range(40-3*4,40))
+    train_inds = list(range(0,round(len(train_valid_set)*training_to_validation_ratio))) # index for previously sliced data
+    valid_inds = list( range(round(len(train_valid_set)*training_to_validation_ratio), len(train_valid_set)) )
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     
