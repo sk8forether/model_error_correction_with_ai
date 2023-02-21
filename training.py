@@ -37,7 +37,8 @@ def Train_CONV2D(param_list):
 
 def _train_(rank,
             vars_f06, vars_sfc, vars_out, testset, kernel_sizes, 
-            channels, n_conv, p, bs, loss, lr, wd, trunc):
+            channels, n_conv, p, bs, loss, lr, wd, trunc,
+            end_of_training_day, training_validation_length_days, tv_ratio):
     '''Run individual training task. Called by Train_CONV2D'''
     
     params = locals() # get local variables i.e. the input parameters 
@@ -52,9 +53,9 @@ def _train_(rank,
     ######################################################################    
     # Train_Valid DATASET
     # define the training and validation index range (indp test range defined in check_model)
-    splits = test_train_valid_splits(testset)
+    splits = test_train_valid_splits(testset, end_of_training_day, training_validation_length_days)
     train_valid_slice = splits["train_valid_slice"]
-    training_to_validation_ratio = splits["training_to_validation_ratio"]
+    training_to_validation_ratio = tv_ratio
 
     logging.info('rank: {}, Generating train_valid_set'.format(rank))
     Dataset = Dataset_np

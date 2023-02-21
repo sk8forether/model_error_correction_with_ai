@@ -60,7 +60,9 @@ def get_test_dataset(hyperparam, num_workers=0):
     
     # define the test index range
     testset = hyperparam['testset']
-    splits = test_train_valid_splits(testset)
+    end_of_training_day = hyperparam["end_of_training_day"]
+    training_validation_length_days = hyperparam["training_validation_length_days"]
+    splits = test_train_valid_splits(testset, end_of_training_day, training_validation_length_days)
     test_slice = splits["test_slice"]
         
     test_set = Dataset(idx_include=test_slice, **hyperparam) # initiate dataset object
@@ -76,7 +78,9 @@ def get_train_dataset(hyperparam, num_workers=0):
 
     # define the training and validation index range
     testset = hyperparam['testset']
-    splits = test_train_valid_splits(testset)
+    end_of_training_day = hyperparam["end_of_training_day"]
+    training_validation_length_days = hyperparam["training_validation_length_days"]
+    splits = test_train_valid_splits(testset, end_of_training_day, training_validation_length_days)
     train_valid_slice = splits["train_valid_slice"]
 
     train_valid_set = Dataset(idx_include=train_valid_slice, **hyperparam) # initiate dataset object
