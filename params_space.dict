@@ -1,0 +1,16 @@
+{
+                  "vars_f06":     ["tpsuvq"],
+                  "vars_sfc":     ["online"],
+                  "vars_out":     ["t","q","u","v"],
+                  "testset" :     [3],
+                  "kernel_sizes": ["1"],
+                  "channels":     ["4096"],
+                  "n_conv"  :     [3],
+                  "p"   :         [0.25],
+                  "bs"  :         [8],
+                  "loss":         ["mse"],
+                  "lr"  :         [1e-4],
+                  "wd"  :         [0.05],
+                  "trunc":        ["sub"]
+                  }
+
