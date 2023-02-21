@@ -19,7 +19,6 @@ def execute(if_renew):
         #print(filename)
     else:
         y_pred, y=sub_eval_model(filename,if_renew=False,if_wait=True) # read from previous evaluation (if exists) and output
-        logging.info("MSE: {}".format(np.mean((y-y_pred)**2)))
 
 execute(True)
 execute(False)
