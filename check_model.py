@@ -250,6 +250,9 @@ def eval_model(filename):
     logging.info(y_file)
     
     t0 = time()
+    # set number of mkl threads
+    torch.set_num_threads(40)
+
     # run model through the testing dataset in evaluation mode
     with torch.set_grad_enabled(False):
         model.eval()

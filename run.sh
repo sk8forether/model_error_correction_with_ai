@@ -5,5 +5,7 @@ cd -
 #rm checks/* jobs/* npys/* slurm_out/*
 mkdir checks jobs npys slurm_out
 
-$MYPYTHON ${CODEDIR}/submit_monitor.py
-$MYPYTHON ${CODEDIR}/eval_models.py
+$GPUPYTHON ${CODEDIR}/submit_monitor.py
+
+# run this after training is complete
+#$MYPYTHON ${CODEDIR}/eval_models.py

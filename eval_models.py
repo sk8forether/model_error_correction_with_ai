@@ -31,7 +31,7 @@ f = open('evaluate_model.test','w')
 
 def execute(if_renew):
   for var in ['t','q','u','v']: # loop through variables
-    time.sleep(5)
+#  for var in ['q']: # loop through variables
 
     filename = "checks/"+make_filename(var)
 #    filename = df[(df.vars_out==var) & (df.trunc=='sub') & 
@@ -44,8 +44,9 @@ def execute(if_renew):
     else:
         y_pred, y=sub_eval_model(filename,if_renew=False,if_wait=True) # read from previous evaluation (if exists) and output
         f.write("Variable {var} MSE: {mse:.2f}\n".format(var=var, mse=np.mean((y-y_pred)**2)))
+    time.sleep(10)
 
-execute(True)
+#execute(True)
 execute(False)
 
 

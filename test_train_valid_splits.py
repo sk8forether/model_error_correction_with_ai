@@ -15,8 +15,8 @@ def test_train_valid_splits(strategy, end_of_training_day, training_validation_l
         test_slice = slice(-4*4,None) # for Sergey; indp test with the last 4 days
         train_valid_slice = slice(-14*4,-4*4) # last 14 days to 4th to last day.
     elif strategy==4: #configure strategy from the params_space.dict file
-        test_slice = slice(end_of_training_day*4,None)
-        #test_slice = slice(None,None)
+        #test_slice = slice(end_of_training_day*4,None)
+        test_slice = slice(0,1868)
         train_valid_slice = slice((end_of_training_day-training_validation_length_days)*4,end_of_training_day*4)
     else:
         logging.error("rank: {}, testset strategy values {} not supported".format(rank, strategy))
