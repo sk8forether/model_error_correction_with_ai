@@ -17,7 +17,7 @@ from test_train_valid_splits import test_train_valid_splits
 #main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
 #python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 main_dir = "./"
-python_exe = os.environ.get('MYPYTHON')
+python_exe = sys.executable #os.environ.get('MYPYTHON')
 slurm_account = os.environ.get('SLURM_ACCOUNT')
 
 def int_float_str(s):

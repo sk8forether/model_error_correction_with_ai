@@ -2,14 +2,12 @@ import os
 import sys
 
 userid     = os.environ.get("USER") 
-#main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction"
-#python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 main_dir = "./"
 if not os.path.exists(main_dir+'/jobs/'):
   os.mkdir(main_dir+'/jobs/')
 if not os.path.exists(main_dir+'/slurm_out/'):
   os.mkdir(main_dir+'/slurm_out/')
-python_exe = os.environ.get('MYPYTHON')
+python_exe = sys.executable #os.environ.get('MYPYTHON')
 slurm_account = os.environ.get('SLURM_ACCOUNT')
 
 def monitor():
