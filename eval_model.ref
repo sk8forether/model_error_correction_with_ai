@@ -1,0 +1,30 @@
+INFO:root:t
+INFO:root:checks/conv2d_tpsuvq_online_t_3_1_4096_3_0.25_8_mse_0.0001_0.05_sub
+INFO:root:filename
+INFO:root:model eval 1st time. will take longer.
+INFO:root:finished
+INFO:root:Learned percentage: 0.12227886915206909
+INFO:root:R2:  0.12218725681304932
+INFO:root:MSE: 0.67374587059021
+INFO:root:q
+INFO:root:checks/conv2d_tpsuvq_online_q_3_1_4096_3_0.25_8_mse_0.0001_0.05_sub
+INFO:root:model evaled before. reading from file.
+INFO:root:finished
+INFO:root:Learned percentage: 0.32500630617141724
+INFO:root:R2:  0.32495635747909546
+INFO:root:MSE: 0.6570844650268555
+INFO:root:u
+INFO:root:checks/conv2d_tpsuvq_online_u_3_1_4096_3_0.25_8_mse_0.0001_0.05_sub
+INFO:root:model evaled before. reading from file.
+INFO:root:finished
+INFO:root:Learned percentage: 0.07229071855545044
+INFO:root:R2:  0.07211381196975708
+INFO:root:MSE: 0.28132641315460205
+INFO:root:v
+INFO:root:checks/conv2d_tpsuvq_online_v_3_1_4096_3_0.25_8_mse_0.0001_0.05_sub
+INFO:root:model evaled before. reading from file.
+INFO:root:finished
+INFO:root:Learned percentage: 0.08953046798706055
+INFO:root:R2:  0.08772581815719604
+INFO:root:MSE: 0.5323532223701477
+

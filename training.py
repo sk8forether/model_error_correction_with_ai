@@ -17,6 +17,7 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import Pool
 from torch.utils import data
 from torch.utils.data import Subset, DataLoader, SubsetRandomSampler
+from test_train_valid_splits import test_train_valid_splits
 
 # Loading self-defined package
 from model import CONV2D
@@ -36,7 +37,8 @@ def Train_CONV2D(param_list):
 
 def _train_(rank,
             vars_f06, vars_sfc, vars_out, testset, kernel_sizes, 
-            channels, n_conv, p, bs, loss, lr, wd, trunc):
+            channels, n_conv, p, bs, loss, lr, wd, trunc,
+            end_of_training_day, training_validation_length_days, tv_ratio):
     '''Run individual training task. Called by Train_CONV2D'''
     
     params = locals() # get local variables i.e. the input parameters 
@@ -51,18 +53,10 @@ def _train_(rank,
     ######################################################################    
     # Train_Valid DATASET
     # define the training and validation index range (indp test range defined in check_model)
-    if testset==0:  # skip first 10 days, train with following 365 days. indp test with the rest.
-        train_valid_slice = slice(40,40+1460)
-    elif testset==1: # skip first 10 days, train with the last 365 days. indp test with the rest.
-        train_valid_slice = slice(40+367,None)
-    elif testset==2: # for sample use
-        train_valid_slice = slice(None,None)
-    elif testset==3: # for Sergey; train with the penultimate week. reserve and split last week for 3-day validation and 4-day indp test.
-        train_valid_slice = slice(-14*4,-4*4) # last 14 days to 4th to last day. 
-    else:
-        logging.error("rank: {}, testset values {} not supported".format(rank, testset))
-        exit()
-        
+    splits = test_train_valid_splits(testset, end_of_training_day, training_validation_length_days)
+    train_valid_slice = splits["train_valid_slice"]
+    training_to_validation_ratio = tv_ratio
+
     logging.info('rank: {}, Generating train_valid_set'.format(rank))
     Dataset = Dataset_np
     # initialize dataset object containing training datasets
@@ -78,8 +72,8 @@ def _train_(rank,
     # Set up data loader
     
     # split training and validation data range
-    train_inds = list(range(0,40-3*4)) # index for previously sliced data
-    valid_inds = list(range(40-3*4,40))
+    train_inds = list(range(0,round(len(train_valid_set)*training_to_validation_ratio))) # index for previously sliced data
+    valid_inds = list( range(round(len(train_valid_set)*training_to_validation_ratio), len(train_valid_set)) )
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     

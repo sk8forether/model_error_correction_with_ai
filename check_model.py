@@ -11,12 +11,13 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 from netCDF4 import Dataset
+from test_train_valid_splits import test_train_valid_splits
 
 #main_dir = "/scratch2/BMC/gsienkf/Tse-chun.Chen/for_sergey/model_error_correction"
 #main_dir = "/home/Sergey.Frolov/work/model_error/code/model_error_correction/"
 #python_exe = "/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python"
 main_dir = "./"
-python_exe = os.environ.get('MYPYTHON')
+python_exe = sys.executable #os.environ.get('MYPYTHON')
 slurm_account = os.environ.get('SLURM_ACCOUNT')
 
 def int_float_str(s):
@@ -57,22 +58,12 @@ def get_test_dataset(hyperparam, num_workers=0):
     logging.info('## get_test_dataset                             ')
     logging.info('################################################')
     
+    # define the test index range
     testset = hyperparam['testset']
-    
-    # define the testing index range
-    if testset==0:
-        test_slice = slice(40+1460,None)
-        #train_valid_slice = slice(40,40+1460)
-    elif testset==1:
-        test_slice = slice(40,40+367)
-        #train_valid_slice = slice(40+368,None)
-    elif testset==2:
-        test_slice = slice(None,None) #for sample use
-    elif testset==3:
-        test_slice = slice(-4*4,None) # for Sergey; indp test with the last 4 days
-    else:
-        logging.error("rank: {}, testset values {} not supported".format(rank, testset))
-        exit()
+    end_of_training_day = hyperparam["end_of_training_day"]
+    training_validation_length_days = hyperparam["training_validation_length_days"]
+    splits = test_train_valid_splits(testset, end_of_training_day, training_validation_length_days)
+    test_slice = splits["test_slice"]
         
     test_set = Dataset(idx_include=test_slice, **hyperparam) # initiate dataset object
     test_Loader = DataLoader(test_set, batch_size=len(test_set),num_workers=num_workers) # set up data loader
@@ -84,22 +75,14 @@ def get_train_dataset(hyperparam, num_workers=0):
     logging.info('################################################')
     logging.info('## get_test_dataset                             ')
     logging.info('################################################')
-    
-    testset = hyperparam['testset']
-    
+
     # define the training and validation index range
-    if testset==0:
-        train_valid_slice = slice(40,40+1460)
-    elif testset==1:
-        train_valid_slice = slice(40+368,None)
-    elif testset==2:
-        train_valid_slice = slice(None,None) #for sample use
-    elif testset==3: # for Sergey; train with the penultimate week. reserve and split last week for 3-day validation and 4-day indp test.
-        train_valid_slice = slice(-14*4,-4*4) # last 14 days to 4th to last day. 
-    else:
-        logging.error("rank: {}, testset values {} not supported".format(rank, testset))
-        exit()
-        
+    testset = hyperparam['testset']
+    end_of_training_day = hyperparam["end_of_training_day"]
+    training_validation_length_days = hyperparam["training_validation_length_days"]
+    splits = test_train_valid_splits(testset, end_of_training_day, training_validation_length_days)
+    train_valid_slice = splits["train_valid_slice"]
+
     train_valid_set = Dataset(idx_include=train_valid_slice, **hyperparam) # initiate dataset object
     train_valid_Loader = DataLoader(train_valid_set, batch_size=hyperparam['bs'], num_workers=num_workers) # set up data loader
     return train_valid_Loader
@@ -267,6 +250,9 @@ def eval_model(filename):
     logging.info(y_file)
     
     t0 = time()
+    # set number of mkl threads
+    torch.set_num_threads(40)
+
     # run model through the testing dataset in evaluation mode
     with torch.set_grad_enabled(False):
         model.eval()

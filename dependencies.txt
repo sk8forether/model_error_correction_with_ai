@@ -1,0 +1,3 @@
+pandas
+netCDF4
+torch (need to add gpu support)

@@ -2,7 +2,7 @@
                   "vars_f06":     ["tpsuvq"],
                   "vars_sfc":     ["online"],
                   "vars_out":     ["t","q","u","v"],
-                  "testset" :     [3],
+                  "testset" :     [4],
                   "kernel_sizes": ["1"],
                   "channels":     ["4096"],
                   "n_conv"  :     [3],
@@ -11,6 +11,9 @@
                   "loss":         ["mse"],
                   "lr"  :         [1e-4],
                   "wd"  :         [0.05],
-                  "trunc":        ["sub"]
+                  "trunc":        ["sub"],
+                  "end_of_training_day": [375],
+                  "training_validation_length_days": [30],
+                  "training_to_validation_ratio": [0.7]
                   }
 
