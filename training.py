@@ -18,6 +18,7 @@ from torch.multiprocessing import Pool
 from torch.utils import data
 from torch.utils.data import Subset, DataLoader, SubsetRandomSampler
 from test_train_valid_splits import test_train_valid_splits
+import random
 
 # Loading self-defined package
 from model import CONV2D
@@ -72,8 +73,10 @@ def _train_(rank,
     # Set up data loader
     
     # split training and validation data range
-    train_inds = list(range(0,round(len(train_valid_set)*training_to_validation_ratio))) # index for previously sliced data
-    valid_inds = list( range(round(len(train_valid_set)*training_to_validation_ratio), len(train_valid_set)) )
+    idx = np.arange(len(train_valid_set))
+    random.shuffle(idx)
+    train_inds = list(idx[0:round(len(train_valid_set)*training_to_validation_ratio)])
+    valid_inds = list(idx[round(len(train_valid_set)*training_to_validation_ratio):])
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     
