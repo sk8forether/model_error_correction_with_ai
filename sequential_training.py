@@ -16,15 +16,15 @@ def my_reset(p_before):
 #define sequential training configuration
 training_step_length=7
 start_day_postion_in_the_list=-3
-starting_step = 406
-number_of_training_steps = 8
+starting_step = 14
+number_of_training_steps = 64
 
 #define sweep over the weight decay parameters
 wds_postion_in_the_list=-5
 number_of_wds=8
-wds=[0.1]*number_of_wds
+wds=[0.01]*number_of_wds
 for i in range(1,number_of_wds):
-  wds[i]=wds[i-1]/2.0
+  wds[i]=wds[i-1]/10.0
 
 #create parameter traingin tuple
 p=list(('tpsuvq', 'online', 't', 4, '1', '4096', 3, 0.25, 8, 'mse', 0.0001, wds[0], 'sub', starting_step, 14, 0.7))
