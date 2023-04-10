@@ -13,11 +13,11 @@ import xarray as xr
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.multiprocessing as mp
 from torch.multiprocessing import Pool
 from torch.utils import data
 from torch.utils.data import Subset, DataLoader, SubsetRandomSampler
 from test_train_valid_splits import test_train_valid_splits
+import random
 
 # Loading self-defined package
 from model import CONV2D
@@ -72,8 +72,10 @@ def _train_(rank,
     # Set up data loader
     
     # split training and validation data range
-    train_inds = list(range(0,round(len(train_valid_set)*training_to_validation_ratio))) # index for previously sliced data
-    valid_inds = list( range(round(len(train_valid_set)*training_to_validation_ratio), len(train_valid_set)) )
+    idx = np.arange(len(train_valid_set))
+    random.shuffle(idx)
+    train_inds = list(idx[0:round(len(train_valid_set)*training_to_validation_ratio)])
+    valid_inds = list(idx[round(len(train_valid_set)*training_to_validation_ratio):])
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     
@@ -112,7 +114,8 @@ def _train_(rank,
         checkpoint = torch.load(checkfile,map_location=map_location)
             
         model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if len(checkpoint['optimizer_state_dict']) : 
+          optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         
         best_model = deepcopy(model.state_dict())
         best_optim = deepcopy(optimizer.state_dict())
@@ -134,8 +137,8 @@ def _train_(rank,
         max_time = 0       # keep track of maximum time used for each epoch
         epoch = 0          # keep track of number of epoches
 
-    max_epoches = 500 # maximum training epoches before forced termination
-    patience = 20     # maximum number of consecutive epoches that does not decrease the valid loss (for early stopping)
+    max_epoches = 150 # maximum training epoches before forced termination
+    patience = 10     # maximum number of consecutive epoches that does not decrease the valid loss (for early stopping)
     
     
     ######################################################################    
@@ -429,3 +432,16 @@ def dataset_to_tensor_list(file):
             vals.append(torch.tensor(file[var].values))
 
     return vals
+def reset_network(old_name,new_name,rank=''):
+  # read old checkpoint, reset training hsitory to scratch
+  print(f"reading {old_name}")
+  nn = torch.load(old_name)
+  print(f"reseting to {new_name}")
+  _checkpoint_(rank=0, checkfile=new_name, best_model=nn['model_state_dict'], best_optim=[], epoch=0,
+              train_losses=[], valid_losses=[], impatience=0, max_time=0)
+
+def create_checkpoint_filename(params,dirname='checks',prefix='conv2d'):
+  # filename for training checkpoints
+  fn = dirname+'/'+prefix+'_'+'_'.join([str(elem) for elem in params]) # filename for training checkpoints
+  return fn
+
