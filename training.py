@@ -4,6 +4,7 @@ import itertools
 import sys
 import time
 from copy import deepcopy
+from torchmetrics.functional import mean_squared_error
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -37,7 +38,7 @@ def Train_CONV2D(param_list):
 
 def _train_(rank,
             vars_f06, vars_sfc, vars_out, testset, kernel_sizes, 
-            channels, n_conv, p, bs, loss, lr, wd, trunc,
+            channels, n_conv, p, bs, loss_name, lr, wd, trunc,
             end_of_training_day, training_validation_length_days, tv_ratio):
     '''Run individual training task. Called by Train_CONV2D'''
     
@@ -95,12 +96,17 @@ def _train_(rank,
     model.to(rank) # send model to gpu
 
     logging.info('rank: {}, setting up loss'.format(rank))
-    
     # define loss functions
-    if loss == 'mse':
-        criterion = torch.nn.MSELoss(reduction='sum')
-    elif loss == 'mae':
-        criterion = torch.nn.L1Loss(reduction='sum')
+    if loss_name == 'mse':
+        criterion = torch.nn.MSELoss(reduction='mean')
+    elif loss_name == 'mae':
+        criterion = torch.nn.L1Loss(reduction='mean')
+    elif loss_name == 'wnew':
+        # Assume that the norm^2 for the first term in the loss function is about 1 and the norm^2 for the second term is about 1e8
+        # then w_weight/1e8 allows us to specify w_weight in a more inuitive units
+        w_weight = wd*1e8
+        wd = 1e-08
+        criterion = torch.nn.MSELoss(reduction='mean')
     else:
         logging.error('rank: {}, Loss not supported!!'.format(rank))
         exit()
@@ -137,6 +143,10 @@ def _train_(rank,
         max_time = 0       # keep track of maximum time used for each epoch
         epoch = 0          # keep track of number of epoches
 
+    # initialize W0
+    model_0 = deepcopy(model)
+    model_0.to(rank)
+
     max_epoches = 150 # maximum training epoches before forced termination
     patience = 10     # maximum number of consecutive epoches that does not decrease the valid loss (for early stopping)
     
@@ -153,6 +163,8 @@ def _train_(rank,
             ###########
             ## Training
             train_loss = 0
+            train_wpen = 0
+            train_loss_all = 0
             start_time = time.time()
             model.train() # set model in training mode
 
@@ -161,15 +173,29 @@ def _train_(rank,
                 X, y = X.to(rank), y.to(rank) # send data to gpu
                 optimizer.zero_grad()         # reset gradient
                 y_pred = model(X)             # get output from model
-                loss = criterion(y_pred, y)   # compute loss
-                loss.backward()               # compute gradient
-                optimizer.step()              # update parameter
+
+                loss = criterion(y_pred, y)
                 train_loss += loss.item()     # sum loss for all batches
 
-            train_loss /= len(train_inds)*volumn_size # compute mean loss
-            train_losses.append(train_loss)           # record training loss
-            
-            logging.info("rank: {}, Train epoch: {}, Loss: {:.4f}, Current Minimum: {:.4f} at epoch# {}".format(rank, epoch, train_loss, min(train_losses), np.argmin(train_losses)))
+                if loss_name=='wnew':
+                  w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.convs[i].weight)  for i, p in enumerate(model.convs)])
+                  loss = loss + w_penalty
+                else: 
+                  w_penalty = 0
+                train_wpen += w_penalty
+
+                train_loss_all += loss.item()
+
+                loss.backward()               # compute gradient
+                optimizer.step()              # update parameter
+
+            train_loss /= len(train_inds) # compute mean loss
+            train_wpen /= len(train_inds) # compute mean loss
+            train_loss_all /= len(train_inds) # compute mean loss
+            train_losses.append(train_loss_all)           # record training loss
+
+            logging.info("rank: {}, Train epoch: {}, Loss All: {:.4f}, mse loss: {}, wpen: {}, Current Minimum: {:.4f} at epoch# {}".format
+                              (rank, epoch, train_loss_all, train_loss, train_wpen, min(train_losses), np.argmin(train_losses)))
 
             #############
             ## Validation
@@ -179,10 +205,15 @@ def _train_(rank,
                 for X, y in valid_loader:         # loop over every sample in validation set
                     X, y = X.to(rank), y.to(rank) # send data to gpu
                     y_pred = model(X)             # evaluate model
-                    y_diff_s = (y_pred - y)**2    # compute loss
-                    valid_loss += torch.sum(y_diff_s).item() # sum all loss
+                    loss = criterion(y_pred, y)
+                    if loss_name=='wnew':
+                      w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.convs[i].weight)  for i, p in enumerate(model.convs)])
+                      loss = loss + w_penalty
+                    valid_loss += loss.item()
+#                    y_diff_s = (y_pred - y)**2    # compute loss
+#                    valid_loss += torch.sum(y_diff_s).item() # sum all loss
                     
-            valid_loss /= 244*volumn_size    # average loss
+            valid_loss /= len(valid_inds)    # average loss
             valid_losses.append(valid_loss)  # record validation loss
 
             logging.info("rank: {}, Valid epoch: {}, Loss: {:.4f}, Current Minimum: {:.4f} at epoch# {}".format(rank, epoch, valid_loss, min(valid_losses), np.argmin(valid_losses)))
