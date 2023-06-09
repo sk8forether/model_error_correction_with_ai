@@ -10,7 +10,7 @@ cd code
 source ./setenv.sh
 cd -
 
-#$GPUPYTHON code/sequential_training.py
+#$MYPYTHON code/batch_evaluation.py
 $MYPYTHON code/sequential_evaluation.py
  
 
