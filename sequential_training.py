@@ -19,16 +19,18 @@ start_day_postion_in_the_list=-3
 starting_step = 14
 number_of_training_steps = 64
 
+
+
 #define sweep over the weight decay parameters
 wds_postion_in_the_list=-5
 number_of_wds=8
 #wds=[0.01]*number_of_wds
 #for i in range(1,number_of_wds):
 #  wds[i]=wds[i-1]/10.0
-wds=[100, 37, 14, 5, 2,  1,  0.5, 0.1]
+wds=[0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001, 0.000000001]
 
 #create parameter traingin tuple
-p=list(('tpsuvq', 'online', 't', 4, '1', '4096', 3, 0.25, 8, 'mse', 0.0001, wds[0], 'sub', starting_step, 14, 0.7))
+p=list(('tpsuvq', 'online', 't', 4, '1', '4096', 3, 0.25, 8, 'wnew', 0.0001, wds[0], 'sub', starting_step, 14, 0.7))
 param_list=[]
 for i in range(len(wds)):
   p[wds_postion_in_the_list]=wds[i]
