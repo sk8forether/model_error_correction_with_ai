@@ -98,9 +98,9 @@ def _train_(rank,
     logging.info('rank: {}, setting up loss'.format(rank))
     # define loss functions
     if loss_name == 'mse':
-        criterion = torch.nn.MSELoss(reduction='sum')
+        criterion = torch.nn.MSELoss(reduction='mean')
     elif loss_name == 'mae':
-        criterion = torch.nn.L1Loss(reduction='sum')
+        criterion = torch.nn.L1Loss(reduction='mean')
     elif loss_name == 'wnew':
         # Assume that the norm^2 for the first term in the loss function is about 1 and the norm^2 for the second term is about 1e8
         # then w_weight/1e8 allows us to specify w_weight in a more inuitive units
@@ -180,6 +180,8 @@ def _train_(rank,
                 if loss_name=='wnew':
                   w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.convs[i].weight)  for i, p in enumerate(model.convs)])
                   loss = loss + w_penalty
+                else: 
+                  w_penalty = 0
                 train_wpen += w_penalty
 
                 train_loss_all += loss.item()

@@ -19,6 +19,6 @@ source ./setenv.sh
 cd -
 
 $GPUPYTHON code/sequential_training.py
-#$GPUPYTHON code/sequential_evaluation.py
+#$GPUPYTHON code/batch_training.py
  
 
