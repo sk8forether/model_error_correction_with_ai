@@ -51,7 +51,7 @@ def get_train_param_name(model_type):
         logging.error(model_type+" not supported!")
     return arg_count, arg_names
 
-def get_test_dataset(hyperparam, num_workers=0):
+def get_test_dataset(hyperparam, num_workers=0, batch_size=0):
     from training import Dataset_np as Dataset
 
     logging.info('################################################')
@@ -66,7 +66,9 @@ def get_test_dataset(hyperparam, num_workers=0):
     test_slice = splits["test_slice"]
         
     test_set = Dataset(idx_include=test_slice, **hyperparam) # initiate dataset object
-    test_Loader = DataLoader(test_set, batch_size=len(test_set),num_workers=num_workers) # set up data loader
+    if batch_size == 0:
+      batch_size=hyperparam['bs']
+    test_Loader = DataLoader(test_set, batch_size=batch_size,num_workers=num_workers) # set up data loader
     return test_Loader
 
 def get_train_dataset(hyperparam, num_workers=0):
@@ -204,17 +206,28 @@ def model_to_nc(filename, if_return_nc=False, if_norm=True,):
     else:
         ncfile.close()
 
+# when trained using nn.DataParallel, additional level of keys is added (e.g. 'module.')
+# this makes a shallow copy in the checkfile that strips the 'module.'
+def remove_module_from_model_state_dict(checkfile):
+  key_list = list(checkfile['model_state_dict'].keys())
+  if key_list[0]=='module.convs.0.weight':
+    for key in key_list:
+      new_key = key[7:]
+      checkfile['model_state_dict'][new_key]=checkfile['model_state_dict'][key]
+      checkfile['model_state_dict'].pop(key)
+  return checkfile
  
-def read_model(filename, if_hyperparam=False, if_iosize=False):
+def read_model(filename, if_hyperparam=False, if_iosize=False, device='cpu'):
     '''initialize model from checkpoint file'''
     logging.info('################################################')
     logging.info('## read_model                                   ')
     logging.info('################################################')
-    
+
     hyperparam = read_hyperparam(filename) # get hyperparameter from filename
-    
-    checkfile = torch.load(filename, map_location=torch.device('cpu')) # load checkpoints from file on cpu
-    
+
+    checkfile = torch.load(filename, map_location=device)
+    checkfile = remove_module_from_model_state_dict(checkfile)
+ 
     input_size  = checkfile['model_state_dict']['convs.0.weight'].shape[1]
     output_size = checkfile['model_state_dict']['convs.{}.weight'.format(hyperparam['n_conv']-1)].shape[0]
     

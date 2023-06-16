@@ -1,6 +1,6 @@
 #!/scratch1/NCEPDEV/global/Tse-chun.Chen/anaconda3/envs/ltn/bin/python
 import torch
-from training import Train_CONV2D , create_checkpoint_filename, reset_network
+from training import Train_CONV2D 
 #import importlib, training
 
 #define sweep over the weight decay parameters
