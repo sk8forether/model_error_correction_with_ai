@@ -93,6 +93,11 @@ def _train_(rank,
     logging.info('rank: {}, setting up model'.format(rank))
     
     model = CONV2D(input_size, output_size, kernel_sizes, channels, n_conv, p,) # initialize model object
+    # if rank is specified using torch.device, then use multiple GPU for training
+    # if rank is an intger, then send to a specific GPU. 
+    if type(rank)==torch.device:
+      logging.info('distributing training on device: {}'.format(rank))
+      model= nn.DataParallel(model)
     model.to(rank) # send model to gpu
 
     logging.info('rank: {}, setting up loss'.format(rank))
@@ -116,7 +121,10 @@ def _train_(rank,
     
     if os.path.isfile(checkfile):
         # read in previous checkpoint file (if exists) to continue training after being interrupted.
-        map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
+        if type(rank)==torch.device:
+          map_location = rank
+        else:
+          map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
         checkpoint = torch.load(checkfile,map_location=map_location)
             
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -178,7 +186,8 @@ def _train_(rank,
                 train_loss += loss.item()     # sum loss for all batches
 
                 if loss_name=='wnew':
-                  w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.convs[i].weight)  for i, p in enumerate(model.convs)])
+                  w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.module.convs[i].weight)  
+                                            for i, p in enumerate(model.module.convs)])
                   loss = loss + w_penalty
                 else: 
                   w_penalty = 0
@@ -207,7 +216,8 @@ def _train_(rank,
                     y_pred = model(X)             # evaluate model
                     loss = criterion(y_pred, y)
                     if loss_name=='wnew':
-                      w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.convs[i].weight)  for i, p in enumerate(model.convs)])
+                      w_penalty = w_weight*sum([mean_squared_error(p.weight, model_0.module.convs[i].weight)
+                                                for i, p in enumerate(model.module.convs)])
                       loss = loss + w_penalty
                     valid_loss += loss.item()
 #                    y_diff_s = (y_pred - y)**2    # compute loss
@@ -222,9 +232,12 @@ def _train_(rank,
             if min(valid_losses) == valid_loss: # if current epoch has the minimal valid loss
                 best_model = deepcopy(model.state_dict()) # extract model parameter
                 best_optim = deepcopy(optimizer.state_dict()) # extract optimizer state
-                
-                logging.info('rank: {}, Reach new min, Saving checkpoint \n'.format(rank))
-                _checkpoint_(rank,checkfile,best_model,best_optim,epoch,train_losses,valid_losses,impatience,max_time) # save history and current state to checkpoint file
+
+                # save history and current state to checkpoint file
+                # for paralel GPU, this step can dominate the cost for small data batches
+                if type(rank)!=torch.device:
+                  logging.info('rank: {}, Reach new min, Saving checkpoint \n'.format(rank))
+                  _checkpoint_(rank,checkfile,best_model,best_optim,epoch,train_losses,valid_losses,impatience,max_time)
 
             check_gpu(rank) # check gpu status
             current_time = time.time()
@@ -233,7 +246,8 @@ def _train_(rank,
 
             max_time = int(max(max_time, elapsed_time)) # update maximum time for each epoch
 
-            if impatience > patience: # break from training if there have been too many consecutive epoches that does not decrease the valid loss
+            # break from training if there have been too many consecutive epoches that does not decrease the valid loss
+            if impatience > patience:
                 logging.info('rank: {}, Break for impatience and save model \n'.format(rank))
                 break
 
@@ -466,13 +480,20 @@ def dataset_to_tensor_list(file):
 def reset_network(old_name,new_name,rank=''):
   # read old checkpoint, reset training hsitory to scratch
   print(f"reading {old_name}")
-  nn = torch.load(old_name)
+  model = torch.load(old_name)
   print(f"reseting to {new_name}")
-  _checkpoint_(rank=0, checkfile=new_name, best_model=nn['model_state_dict'], best_optim=[], epoch=0,
+  _checkpoint_(rank=0, checkfile=new_name, best_model=model['model_state_dict'], best_optim=[], epoch=0,
               train_losses=[], valid_losses=[], impatience=0, max_time=0)
+  del model
 
 def create_checkpoint_filename(params,dirname='checks',prefix='conv2d'):
   # filename for training checkpoints
   fn = dirname+'/'+prefix+'_'+'_'.join([str(elem) for elem in params]) # filename for training checkpoints
   return fn
+
+def compute_skill(y, y_pred):
+   y_pred_ts=y_pred.cpu().detach().numpy().view().reshape((y.shape[0], np.prod(y.shape[1:])))
+   y_ts=y.detach().numpy().view().reshape((y.shape[0], np.prod(y.shape[1:])))
+   skill = 1-np.mean((y_pred_ts-y_ts)**2,axis=1)/np.mean((y_ts)**2,axis=1)
+   return skill
 
