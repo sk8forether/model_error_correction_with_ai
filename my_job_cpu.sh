@@ -4,7 +4,7 @@
 #SBATCH -p bigmem
 #SBATCH --time 03:59:00
 
-cd /home/Sergey.Frolov/work/model_error/work/sliding_window
+cd /home/Sergey.Frolov/work/model_error/work/stefan_replay
 
 cd code
 source ./setenv.sh
