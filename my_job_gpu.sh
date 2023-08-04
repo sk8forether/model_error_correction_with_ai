@@ -14,11 +14,10 @@ echo $PWD
 
 cd code
 echo $PWD
-ls
 source ./setenv.sh
 cd -
 
-$GPUPYTHON code/sequential_training.py
-#$GPUPYTHON code/batch_training.py
+#$GPUPYTHON code/sequential_training.py
+$GPUPYTHON batch_training.py
  
 
