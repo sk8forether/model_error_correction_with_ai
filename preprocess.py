@@ -37,12 +37,6 @@ def preprocess():
 
     # get latlon info from a sample data
     sample = xr.open_dataset(dataDir+'/2019122000/sfg_2019122000_fhr06_control_sub')
-#    lons_d = sample.lon
-#    lats_d = sample.lat
-#   lons_m = lons_d.to_numpy()
-#   lats_m = lats_d.to_numpy()
-#    nlon   = lons_d.shape[1]
-#    nlat   = lons_d.shape[0]
     lons_d = sample.grid_xt
     lats_d = sample.grid_yt
     lons_m, lats_m = np.meshgrid(lons_d, lats_d) # get raw gridded lat and lon
@@ -61,16 +55,6 @@ def preprocess():
     print("sfc size: {}, var in size: {}, var out size: {}, date size: {}".format(sfc_size, varin_size, varout_size, ndates))
 
     # prepare numpy array files in memory-map mode cause the full data is too large to live in memory.
-    if SFC:
-        # boundary conditions
-        sfc_sub  = np.lib.format.open_memmap(npyDir+'_sfc_ranl_sub', mode='w+',shape=(ndates,sfc_size,nlat,nlon), dtype=np.float32)
-        if NORMALIZE:
-          sfc_sub_mean = np.load(npyDir+'_sfc_ranl_sub_mean_1d.npy')
-          sfc_sub_std = np.load(npyDir+'_sfc_ranl_sub_std_1d.npy')
-        else:
-          sfc_sub_mean = np.zeros((sfc_size,), dtype=np.float32)
-          sfc_sub_std  = np.ones((sfc_size,), dtype=np.float32)
-        
     if ATM:
         # atmospheric forecast
         f06_sub  = np.lib.format.open_memmap(npyDir+'_f06_ranl_sub', mode='w+',shape=(ndates,varin_size, nlat,nlon), dtype=np.float32)
@@ -96,12 +80,11 @@ def preprocess():
         YYYYMMDDHH = date.strftime('%Y%m%d%H') # current datetime
         PYYYYMMDDHH = (date + pd.Timedelta('6H')).strftime('%Y%m%d%H') # current datetime + 6h
         for suf, f06, inc, sfc in zip(['sub'],[f06_sub],[inc_sub],[sfc_sub]): # loop through sub (subsampled)
-            if ATM:
-                # ATM files
                 vals_f = []
                 vals_i = []
                 file_f = xr.open_dataset('{}/{}/sfg_{}_fhr06_control_{}'.format(dataDir,YYYYMMDDHH,YYYYMMDDHH,suf)) # read forecast file
                 file_a = xr.open_dataset('{}/{}/sfg_{}_fhr00_control_{}'.format(dataDir,PYYYYMMDDHH,PYYYYMMDDHH,suf)) # read analysis file
+                file = xr.open_dataset('{}/{}/bfg_{}_fhr06_control_{}'.format(dataDir,YYYYMMDDHH,YYYYMMDDHH,suf)) # read boundary condition from file
 
                 for var in vars_in: # loop through the variables
                     val_f = file_f[var].values[0]
@@ -121,24 +104,17 @@ def preprocess():
                         val_f = -(val_f[1:] + val_f[:-1])/2 + file_f.pressfc.values # add surface pressure to get full pressure for each level
 
                     vals_f.append(val_f)
+                for var in sfc_vars:
+                    vals_f.append(file[var].values) # shape(1,32,64) # collect all variables in sfc_vars
+                vals_f.append(lons_m[None,]) #21 # raw lon
+                vals_f.append(lats_m[None,]) #22 # raw lat
+                vals_f.append(lons_sin[None,]) #23 # sine of lon
+                vals_f.append(lons_cos[None,]) #24 # cosine of lon
+                vals_f.append(np.ones((1,nlat,nlon))*date_in[index_d][:,None,None]) # time information
 
                 f06[index_d] = (np.concatenate(vals_f, axis=0) - f06_sub_mean[:,None,None])/f06_sub_std[:,None,None] # stack up all variables for each date
                 inc[index_d] = (np.concatenate(vals_i, axis=0) - inc_sub_mean[:,None,None])/inc_sub_std[:,None,None] # stack up all variables for each date
 
-            if SFC:
-                # SFC file
-                sfcs = []
-                file = xr.open_dataset('{}/{}/bfg_{}_fhr06_control_{}'.format(dataDir,YYYYMMDDHH,YYYYMMDDHH,suf)) # read boundary condition from file
-                for var in sfc_vars:
-                    sfcs.append(file[var].values) # shape(1,32,64) # collect all variables in sfc_vars
-
-                sfcs.append(lons_m[None,]) #21 # raw lon
-                sfcs.append(lats_m[None,]) #22 # raw lat
-                sfcs.append(lons_sin[None,]) #23 # sine of lon
-                sfcs.append(lons_cos[None,]) #24 # cosine of lon
-                sfcs.append(np.ones((1,nlat,nlon))*date_in[index_d][:,None,None]) # time information
-
-                sfc[index_d] = (np.concatenate(sfcs, axis=0) - sfc_sub_mean[:,None,None])/sfc_sub_std[:,None,None]  # stack up all variables for each date
             
     Parallel(n_jobs=40,verbose=0)(delayed(write)(i,d) for i,d in enumerate(dates)) # run write in threadded parallel
 #    #write(0,dates[0])
