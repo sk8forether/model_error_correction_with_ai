@@ -27,7 +27,7 @@ torch.set_num_threads(int(os.cpu_count()/2))
 
 # dataset location
 dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'
-ddd=dataDir+'npys_sergey/ifs'                            
+ddd=dataDir+'npys_sergey2/ifs'                            
 
 # Define training functions and utilities
 def Train_CONV2D(param_list):
@@ -79,8 +79,10 @@ def _train_(rank,
     # split training and validation data range
     idx = np.arange(len(train_valid_set))
     random.shuffle(idx)
-    train_inds = list(idx[0:round(len(train_valid_set)*training_to_validation_ratio)]).sort()
-    valid_inds = list(idx[round(len(train_valid_set)*training_to_validation_ratio):]).sort()
+    train_inds = list(idx[0:round(len(train_valid_set)*training_to_validation_ratio)])
+    valid_inds = list(idx[round(len(train_valid_set)*training_to_validation_ratio):])
+    train_inds.sort()
+    valid_inds.sort()
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     
@@ -287,14 +289,12 @@ class Dataset_np(data.Dataset):
         # load data in memory map mode (allows slicing without actually loading the data)
         # 4D dataset [batch_size, channels, height, width]
         f06_in = np.load(ddd+'_f06_ranl_sub',mmap_mode='r')[idx_include]
-        sfc_in = np.load(ddd+'_sfc_ranl_sub',mmap_mode='r')[idx_include]
         out    = np.load(ddd+'_out_ranl_sub',mmap_mode='r')[idx_include,slice_out]
         
         self.ndates, _, self.nlat, self.nlon = f06_in.shape # get data shape
         
         # convert data from numpy to torch tensor
-        self.ins = [torch.from_numpy((f06_in)),torch.from_numpy((sfc_in))]
-        self.ins = torch.cat(self.ins,1)
+        self.ins = torch.from_numpy(f06_in)
         self.out = torch.from_numpy(out)
 
 #        self.ins = [torch.from_numpy(np.copy(f06_in)),

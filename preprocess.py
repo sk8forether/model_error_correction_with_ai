@@ -10,11 +10,10 @@ import numpy as np
 
 # which components should be processed
 ATM=True
-SFC=True
 NORMALIZE=True
 
 dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'   # directory for input data
-npyDir=dataDir+'npys_sergey/ifs'                            # output directory
+npyDir=dataDir+'npys_sergey2/ifs'                            # output directory
 
 def preprocess():
     '''preprocess the replay dataset from the nc files of reduced dataset into numpy arrays'''
@@ -48,7 +47,7 @@ def preprocess():
     nlevs  = len(sample.pfull)
     
     sfc_size    = len(sfc_vars)+2+2+6    # lon, lat, lon_sin, lon_cos, time6
-    varin_size  = nlevs*4+1              
+    varin_size  = nlevs*4+1+sfc_size     
     varout_size = nlevs*4+1 
     
     print(f"nlat={nlat}, nlon={nlon}")
@@ -71,15 +70,15 @@ def preprocess():
           inc_sub_mean = np.load(npyDir+'_out_ranl_sub_mean_1d.npy')
           inc_sub_std = np.load(npyDir+'_out_ranl_sub_std_1d.npy')
         else:
-          inc_sub_mean = np.zeros((varin_size,), dtype=np.float32)
-          inc_sub_std  = np.ones((varin_size,), dtype=np.float32)
+          inc_sub_mean = np.zeros((varout_size,), dtype=np.float32)
+          inc_sub_std  = np.ones((varout_size,), dtype=np.float32)
 
     def write(index_d, date):
         '''writing data into the numpy array files'''
         print(date)
         YYYYMMDDHH = date.strftime('%Y%m%d%H') # current datetime
         PYYYYMMDDHH = (date + pd.Timedelta('6H')).strftime('%Y%m%d%H') # current datetime + 6h
-        for suf, f06, inc, sfc in zip(['sub'],[f06_sub],[inc_sub],[sfc_sub]): # loop through sub (subsampled)
+        for suf, f06, inc in zip(['sub'],[f06_sub],[inc_sub]): # loop through sub (subsampled)
                 vals_f = []
                 vals_i = []
                 file_f = xr.open_dataset('{}/{}/sfg_{}_fhr06_control_{}'.format(dataDir,YYYYMMDDHH,YYYYMMDDHH,suf)) # read forecast file
@@ -117,8 +116,8 @@ def preprocess():
 
             
     Parallel(n_jobs=40,verbose=0)(delayed(write)(i,d) for i,d in enumerate(dates)) # run write in threadded parallel
-#    #write(0,dates[0])
-#    for i,d in enumerate(dates):write(i,d)
+#   write(0,dates[0])
+#   for i,d in enumerate(dates):write(i,d)
 
 ######################################################################################
 preprocess()      # run the main program

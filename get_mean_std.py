@@ -1,9 +1,10 @@
 import numpy as np
 
 dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'   # directory for input data
-npyDir=dataDir+'npys_sergey/ifs_'                            # output directory
+npyDir=dataDir+'npys_sergey2/ifs_'                          # output directory
 
-for i in ['f06_ranl_sub','sfc_ranl_sub','out_ranl_sub']:
+#for i in ['f06_ranl_sub','out_ranl_sub']:
+for i in ['out_ranl_sub']:
     file = npyDir+i
     a = np.load(file, mmap_mode='r')
     
