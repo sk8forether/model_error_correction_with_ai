@@ -90,8 +90,8 @@ def _train_(rank,
     train_sampler = SubsetRandomSampler(train_inds) # sample from the defined training index range
     
     # initialize data loaders
-    valid_loader = DataLoader(train_valid_set, batch_size=bs, num_workers=8, sampler=valid_sampler,)
-    train_loader = DataLoader(train_valid_set, batch_size=bs, num_workers=8, sampler=train_sampler,)
+    valid_loader = DataLoader(train_valid_set, batch_size=bs, num_workers=0, sampler=valid_sampler,)
+    train_loader = DataLoader(train_valid_set, batch_size=bs, num_workers=0, sampler=train_sampler,)
     
     ######################################################################    
     # MODEL
@@ -286,21 +286,17 @@ class Dataset_np(data.Dataset):
         t = time.time()
             
         self.ins = []
-        # load data in memory map mode (allows slicing without actually loading the data)
+        # load data in np array and cast it as a torch object
         # 4D dataset [batch_size, channels, height, width]
-        f06_in = np.load(ddd+'_f06_ranl_sub',mmap_mode='r')[idx_include]
-        out    = np.load(ddd+'_out_ranl_sub',mmap_mode='r')[idx_include,slice_out]
-        
+        #breakpoint()
+        f06_in = np.load(ddd+'_f06_ranl_sub')[idx_include]
+        self.ins = torch.from_numpy(np.copy(f06_in))
         self.ndates, _, self.nlat, self.nlon = f06_in.shape # get data shape
-        
-        # convert data from numpy to torch tensor
-        self.ins = torch.from_numpy(f06_in)
-        self.out = torch.from_numpy(out)
+        del(f06_in)
 
-#        self.ins = [torch.from_numpy(np.copy(f06_in)),
-#                    torch.from_numpy(np.copy(sfc_in))] 
-#        self.ins = torch.cat(self.ins,1)
-#        self.out = torch.from_numpy(np.copy(out))
+        out    = np.load(ddd+'_out_ranl_sub')[idx_include,slice_out]
+        self.out = torch.from_numpy(np.copy(out))
+        del(out)
         
         print('Channel in  size: {}'.format(self.ins.shape[1]))
         print('Channel out size: {}'.format(self.out.shape[1]))
