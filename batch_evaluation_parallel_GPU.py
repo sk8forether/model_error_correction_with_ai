@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 torch.set_num_threads(int(os.cpu_count()/2))
 
-SAVE_TRUTH=False
+SAVE_TRUTH=True
 
 def my_eval_model(model, test_Loader, device):
   y_pred = torch.zeros(test_Loader.dataset.out.shape)
@@ -28,7 +28,7 @@ def my_eval_model(model, test_Loader, device):
   return y_pred, y
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ptmp=['t', 4, '1', '4096', 3, 0.25, 8, 'mse', 0.0001, 1., 366,  365, 0.7]
+ptmp=['ps', 4, '1', '4096', 3, 0.25, 32, 'mse', 0.0001, 1., 366,  365, 0.7]
 
 
 #load model
@@ -60,12 +60,12 @@ print('Forward time:', et-st, 'seconds')
 # compute skill
 print("Computing skill")
 skill = compute_skill(y, y_pred)
-fnout = os.path.join('npys','expvar_'+os.path.split(fntmp)[-1])
+fnout = os.path.join('npys','skill_'+os.path.split(fntmp)[-1]+'.npy')
 np.save(fnout, skill)
 
 # save y
 if SAVE_TRUTH:
-  fnout = os.path.join('npys','y_'+os.path.split(fntmp)[-1])
+  fnout = os.path.join('npys','y_'+ptmp[0]+'.npy')
   np.save(fnout, y)
 
 
