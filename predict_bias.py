@@ -42,7 +42,7 @@ def denormal_out(x, vars_out):
     
     return x*std_out + mean_out
 
-def read_input(): # needs clean up with the proprocessor and dataset
+def read_input(): 
 
     # time ## modified for consistency with preprocess.py
     date_j = date.to_julian_date()
@@ -78,25 +78,18 @@ def read_input(): # needs clean up with the proprocessor and dataset
     # SFC input
     sfcs = []
     for var in sfc_vars:
-        sfcs.append(file_s[var].values) # was shape(1,32,64); now (7, 1, 64, 128)
+        sfcs.append(file_s[var].values) 
 
-    sfcs.append(lons_m[None,]) # added this for consistency with preprocessor
+    sfcs.append(lons_m[None,]) # added for consistency with preprocessor
     sfcs.append(lats_m[None,]) 
     sfcs.append(lons_sin[None,]) 
     sfcs.append(lons_cos[None,]) 
-    sfcs.append(np.ones((1,nlat,nlon))*date_in[:,None,None]) #11 (but is size 6 in dim 10 after date adjustemnt)
-    #print('sfcs shape =', np.shape(sfcs)) #(11,) 
-    #print('sfcs shape =', len(sfcs)) #(11,) 
-    #print('sfcs[0] shape =', np.shape(sfcs[0])) #(1,64,128)
-    #print('sfcs[10] shape =', np.shape(sfcs[10])) #(6,64,128)
-    #print('sfcs_cat shape = ', np.shape(np.concatenate(sfcs, axis=0))) #(16,64,128)  
+    sfcs.append(np.ones((1,nlat,nlon))*date_in[:,None,None]) 
 
     # Combine the inputs
     #nbc = len(sfc_vars) #21 
     slice_f06 = slice(0,509) # 509 = 4*127 + 1 (127=nlev, 4=num  3d variables and one sfc variable as input)
-    slice_sfc = slice(509,526) # since f06 and sfc are concatenated into one file, use this to slide the larger file. means we start from index 509 and go to end? should be 509 + len(sfc_vars) + 4+6 = 526
-    #slice_sfc = [14,15,16,17,18,19,20]+list(range(nbc,nbc+7)) # if we subtract 14, given that sfc_vars went from len 14 to 7? what is this slicing though? maybe used to index csdlf first but now it's already first. Took last 7 vars from sfc_vars list and then added (21:28), which would grab lats, lons_sin, lons_cos, and the dates? so actually should slice_sfc just be [0:14] now (7 sfc vars and 7 addition lat/lon/lon/date vars?)
-    #slice_sfc = list(range(0,nbc))+list(range(nbc+1,nbc+8))
+    slice_sfc = slice(509,526) 
     
     ins = torch.cat([torch.from_numpy(np.concatenate(vals_f, axis=0)[None,]), 
                      torch.from_numpy(np.concatenate(sfcs, axis=0)[None,])], 1).float()
@@ -108,12 +101,10 @@ def read_input(): # needs clean up with the proprocessor and dataset
     std_f06  = torch.from_numpy(np.load(ddd+'_f06_ranl_{}_std_1d.npy'.format(trunc)) [slice_f06])
     mean_sfc = torch.from_numpy(np.load(ddd+'_f06_ranl_{}_mean_1d.npy'.format(trunc))[slice_sfc])
     std_sfc  = torch.from_numpy(np.load(ddd+'_f06_ranl_{}_std_1d.npy'.format(trunc)) [slice_sfc])
-    #mean_sfc = torch.from_numpy(np.load(ddd+'_sfc_ranl_{}_mean_1d.npy'.format(trunc))[slice_sfc])
-    #std_sfc  = torch.from_numpy(np.load(ddd+'_sfc_ranl_{}_std_1d.npy'.format(trunc)) [slice_sfc])
     
     mean_in = torch.cat([mean_f06, mean_sfc],dim=0)[:,None,None]
     std_in  = torch.cat([std_f06,  std_sfc], dim=0)[:,None,None]
-    X = (ins - mean_in)/std_in ##!!! need to check; do I want to keep the additional variables included in preprocess or index them out? probably keep?
+    X = (ins - mean_in)/std_in 
 
     input_size = ins.shape[1]
     logging.info('Channel in  size: {}'.format(input_size))
@@ -157,15 +148,13 @@ indate  = sys.argv[4] # 2019112006
 if len(sys.argv) > 5:
     file_f = xr.open_dataset(sys.argv[5])
     file_s = xr.open_dataset(sys.argv[6])
+    outd    = sys.argv[7] # output directory
 
 date = pd.Timestamp('{}-{}-{}T{}'.format(indate[:4],indate[4:6],indate[6:8],indate[8:10]))
 
 vars_in=['tmp','ugrd','vgrd','spfh','pressfc']
 vars_out=['T_inc','sphum_inc','u_inc','v_inc','delz_inc','delp_inc','o3mr_inc']
 sfc_vars=['csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land'] #7
-#sfc_vars=['acond','evcw_ave','evbs_ave','sbsno_ave','snohf','snowc_ave',
-#          'ssrun_acc','trans_ave','tmpsfc','tisfc','spfh2m','pevpr_ave','sfcr',
-#          'albdo_ave','csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land'] #21
 
 if mode == 'T-only':
     vars_pred = ['T']
@@ -176,7 +165,7 @@ elif mode == 'TQUV':
 else:
     logging.error("input mode {} not supported".format(mode))
 
-out_inc = "fv3_increment6.nc" # this is where it will get saved; add directory path if you don't want it in the CD
+out_inc = "%s/fv3_increment6_predicted.nc"%outd # this is where the predicted increment will be saved
 if method == "moveavg":
     y_pred = Parallel(n_jobs=4)(delayed(moveavg)(var) for var in vars_pred)
     updatef = sys.argv[5]
@@ -203,8 +192,8 @@ zeros = np.zeros(y_pred[0].shape,dtype=np.float32)
 
 if inc_sfg == 'output':
     ## sample file:
-    file_i = xr.open_dataset('/scratch2/BMC/gsienkf/Laura.Slivinski/model_error_corr_data/%s/fv3_increment6.nc'%indate) #later, make this more general
-    logging.info("saving to fv3_increment6.nc") # make this consistent with above for local save location
+    file_i = xr.open_dataset('/scratch2/BMC/gsienkf/Laura.Slivinski/model_error_corr_work/%s/fv3_increment6.nc'%indate) #later, make this more general
+    logging.info("saving to %s/fv3_increment6_predicted.nc"%outd)
     
     y_pred = y_pred + [zeros]*(7-len(y_pred))
 
@@ -213,7 +202,7 @@ if inc_sfg == 'output':
             file_i[var].values = val[:,::-1]
         else:
             file_i[var].values = val
-    file_i.to_netcdf("fv3_increment6.nc", format='NETCDF4', engine='netcdf4') # make this consistent with above for local save location
+    file_i.to_netcdf("%s/fv3_increment6_predicted.nc"%outd, format='NETCDF4', engine='netcdf4') # make this consistent with above for local save location
     
 elif inc_sfg == 'update':
     logging.info("saving back to input file: fhr06_control")
