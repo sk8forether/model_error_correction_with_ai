@@ -28,6 +28,14 @@ vars_in=['tmp','ugrd','vgrd','spfh','pressfc']
 vars_out_dict = {'t':'T_inc','q':'sphum_inc','u':'u_inc','v':'v_inc'}
 sfc_vars=['csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land'] #7
 
+# csdlf     -- Clear Sky Downward Long Wave Flux
+# csdsf     -- Clear Sky Downward Short Wave Flux
+# csulf     -- Clear Sky Upward Long Wave Flux
+# csulftoa  -- Clear Sky Upward Long Wave Flux at toa
+# csusf     -- Clear Sky Upward Short Wave Flux
+# csusftoa  -- Clear Sky Upward Short Wave Flux at toa
+# land      -- sea-land-ice mask (0-sea, 1-land, 2-ice)
+
 #fn_bfg="/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/2019112006/sfg_2019112006_fhr06_control_sub"
 #fn_sfg="/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/2019112006/bfg_2019112006_fhr06_control_sub"
 #inc_sfg = 'output'
@@ -38,7 +46,7 @@ def relu(x):
     return np.maximum(x, [0],out=x)
 
 def read_input(): 
-
+    breakpoint()
     # time ## modified for consistency with preprocess.py
     date_j = date.to_julian_date()
     time_scales= [1, 365]
@@ -99,9 +107,12 @@ def write_output(y_pred):
 
     if inc_sfg == 'output':
         breakpoint()
-        file_i = xr.DataArray(data=y_pred,coords={'time':file_f.time},'grid_yt':file_f.grid_yt,'grid_xt':file_f.grid_xt},name=vars_out_dict[model.var_out])
 
-        file_i = xr.open_dataset(out_file,engine='netcdf4')
+        file_i = xr.open_dataset(out_file)
+
+
+#        file_i = xr.DataArray(data=y_pred,coords={'time':file_f.time},'grid_yt':file_f.grid_yt,'grid_xt':file_f.grid_xt},name=vars_out_dict[model.var_out])
+#        file_i = xr.open_dataset(out_file,engine='netcdf4')
         logging.info("saving to "+out_file)
 
         y_pred = y_pred + [zeros]*(7-len(y_pred))
