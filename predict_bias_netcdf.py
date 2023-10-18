@@ -24,9 +24,11 @@ pd.Timedelta = Timedelta
 pd.Timestamp = Timestamp
 
 vars_in=['tmp','ugrd','vgrd','spfh','pressfc']
-#vars_out=['T_inc','sphum_inc','u_inc','v_inc','delz_inc','delp_inc','o3mr_inc']
-vars_out_dict = {'t':'T_inc','q':'sphum_inc','u':'u_inc','v':'v_inc'}
+vars_out=['T_inc','sphum_inc','u_inc','v_inc','delz_inc','delp_inc','o3mr_inc']
+#vars_out_dict = {'t':'T_inc','q':'sphum_inc','u':'u_inc','v':'v_inc'}
 sfc_vars=['csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land'] #7
+
+num_predvar = 1 # hardcoding this for now; one variable is predicted (to use when reshaping y_pred and creating output file with correct number of output vars)
 
 # csdlf     -- Clear Sky Downward Long Wave Flux
 # csdsf     -- Clear Sky Downward Short Wave Flux
@@ -93,12 +95,12 @@ def forward(X):
     y_pred = relu(np.matmul(model.w0.T.to_numpy(),X.reshape((X.shape[0], X.shape[2]*X.shape[1])))+model.b0.to_numpy()[:, None])
     y_pred = relu(np.matmul(model.w1.T.to_numpy(),y_pred)+model.b1.to_numpy()[:, None])
     y_pred = np.matmul(model.w2.T.to_numpy(),y_pred)+model.b2.to_numpy()[:, None]
-    y_pred = np.reshape(y_pred,(y_pred.shape[0],X.shape[1],X.shape[2]))
+    y_pred = np.reshape(y_pred,(num_predvar,y_pred.shape[0],X.shape[1],X.shape[2]))
 
     return y_pred
 
 def write_output(y_pred):
-    #out_inc = "%s/fv3_increment6_predicted.nc"%outd # this is where the predicted increment will be saved
+    global file_f
 
     # Save to files
     zeros = np.zeros(y_pred[0].shape,dtype=np.float32)
@@ -108,14 +110,13 @@ def write_output(y_pred):
     if inc_sfg == 'output':
         breakpoint()
 
-        file_i = xr.open_dataset(out_file)
-
-
-#        file_i = xr.DataArray(data=y_pred,coords={'time':file_f.time},'grid_yt':file_f.grid_yt,'grid_xt':file_f.grid_xt},name=vars_out_dict[model.var_out])
-#        file_i = xr.open_dataset(out_file,engine='netcdf4')
         logging.info("saving to "+out_file)
 
-        y_pred = y_pred + [zeros]*(7-len(y_pred))
+        y_pred = y_pred + [zeros]*(7-len(y_pred)) 
+        
+        file_i = xr.Dataset(data_vars = dict([(vars_out[0],(["lev","lat","lon"],zeros))]), coords=dict([('lon',(["lon"],file_f.grid_xt.data)),('lat',(["lat"],file_f.grid_yt.data)),('lev',(["lev"],range(1,128)))]))
+        for i in range(1,len(vars_out)):
+           file_i=file_i.assign(dict([(vars_out[i],(["lev","lat","lon"],zeros))]))
 
         for var,val in zip(vars_out, y_pred):
            file_i[var].values = val[:,::-1]
@@ -140,19 +141,19 @@ if __name__ == "__main__":
     logging.info('Inputs: %s', sys.argv)
 
     ### -- parse input
-    network_file  = sys.argv[1] # network file location
-    fn_bfg = sys.argv[2]  #path to background input 3d file
-    fn_sfg = sys.argv[3]  #path to background input 2d file
+    network_file  = sys.argv[1] # neural network file location 
+    fn_sfg = sys.argv[2]  #path to background input 3d file
+    fn_bfg = sys.argv[3]  #path to background input 2d file
     if len(sys.argv) > 4:
         out_file = sys.argv[4]
         inc_sfg = 'update'
     else:
         inc_sfg = 'output'
-        out_file = "./fv3_increment6_predicted.nc"
-
+        out_file = "./fv3_increment6_predicted.nc" # if we want this to be user-provided, a few mods are required
+    print(inc_sfg)
     ### -- open files
-    file_f = xr.open_dataset(fn_bfg)
-    file_s = xr.open_dataset(fn_sfg)
+    file_f = xr.open_dataset(fn_sfg)
+    file_s = xr.open_dataset(fn_bfg)
     date = pandas.to_datetime(file_f.time)[0]
     indate = date.strftime('%Y%m%d%H')
 
