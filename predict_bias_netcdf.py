@@ -48,7 +48,7 @@ def relu(x):
     return np.maximum(x, [0],out=x)
 
 def read_input(): 
-    breakpoint()
+    #breakpoint()
     # time ## modified for consistency with preprocess.py
     date_j = date.to_julian_date()
     time_scales= [1, 365]
@@ -108,7 +108,7 @@ def write_output(y_pred):
     # var_out = model.var_out
 
     if inc_sfg == 'output':
-        breakpoint()
+        #breakpoint()
 
         logging.info("saving to "+out_file)
 
