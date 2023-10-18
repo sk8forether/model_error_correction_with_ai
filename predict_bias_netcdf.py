@@ -150,7 +150,6 @@ if __name__ == "__main__":
     else:
         inc_sfg = 'output'
         out_file = "./fv3_increment6_predicted.nc" # if we want this to be user-provided, a few mods are required
-    print(inc_sfg)
     ### -- open files
     file_f = xr.open_dataset(fn_sfg)
     file_s = xr.open_dataset(fn_bfg)
