@@ -9,10 +9,10 @@ end_day_postion_in_the_list=-3
 training_length_position_in_the_list=-2
 training_step_length=7
 starting_step = 14
-number_of_training_steps = 64
+number_of_training_steps = 102
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ptmp=[device,'tpsuvq', 'online', 't', 4, '1', '4096', 3, 0.25, 8, 'wnew', 0.0001, 1e-5, 'sub', 
+ptmp=[device, 't', 4, '1', '4096', 3, 0.25, 8, 'wnew', 0.0001, 1e-5, 'sub', 
             starting_step, training_step_length, 0.7]
 print(ptmp)
 

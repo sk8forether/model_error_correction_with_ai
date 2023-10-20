@@ -142,7 +142,7 @@ def read_checkfile(filename):
     except (ValueError):
         logging.error("OOM: " + filename)
        
-def model_to_nc(filename, if_return_nc=False, if_norm=True,):
+def model_to_nc(filename, if_return_nc=False, if_norm=True, ddd='./'):
     logging.info('################################################')
     logging.info('## output coeff. to nc file                     ')
     logging.info('################################################')
@@ -166,11 +166,21 @@ def model_to_nc(filename, if_return_nc=False, if_norm=True,):
     ncfile.var_out  = hyperparam['vars_out']
 
     if if_norm:
-        loader   = get_test_dataset(hyperparam)
-        mean_in  = loader.dataset.mean_in.numpy().squeeze()
-        std_in   = loader.dataset.std_in.numpy().squeeze()
-        mean_out = loader.dataset.mean_out.numpy().squeeze()
-        std_out  = loader.dataset.std_out.numpy().squeeze()
+      slice_out = []
+      if  hyperparam['vars_out'] == 't':
+        slice_out = slice(0,127)
+      elif hyperparam['vars_out'] == 'u':
+        slice_out = slice(127*1+1,127*2+1)
+      elif hyperparam['vars_out'] == 'v':
+        slice_out = slice(127*2+1,127*3+1)
+      elif hyperparam['vars_out'] == 'q':
+        slice_out = slice(127*3+1,127*4+1)
+
+      ddd = '/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey2/'
+      mean_in = np.load(ddd+'ifs_f06_ranl_sub_mean_1d.npy')
+      std_in  = np.load(ddd+'ifs_f06_ranl_sub_std_1d.npy')
+      mean_out = np.load(ddd+'ifs_out_ranl_sub_mean_1d.npy')[slice_out]
+      std_out  = np.load(ddd+'ifs_out_ranl_sub_std_1d.npy')[slice_out]
 
     # create nc dimension
     for n,s in enumerate(n_nodes):

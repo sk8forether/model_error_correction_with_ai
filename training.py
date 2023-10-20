@@ -23,6 +23,12 @@ import random
 # Loading self-defined package
 from model import CONV2D
 
+torch.set_num_threads(int(os.cpu_count()/2))
+
+# dataset location
+dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'
+ddd=dataDir+'npys_sergey2/ifs'                            
+
 # Define training functions and utilities
 def Train_CONV2D(param_list):
     '''Get training setup from a list hyperparameters (for hyper search) and Distribute each training task to different GPUs (max:8).
@@ -37,8 +43,8 @@ def Train_CONV2D(param_list):
         p.starmap(_train_, param_list) # submit tasks to the pool of processes
 
 def _train_(rank,
-            vars_f06, vars_sfc, vars_out, testset, kernel_sizes, 
-            channels, n_conv, p, bs, loss_name, lr, wd, trunc,
+            vars_out, testset, kernel_sizes, 
+            channels, n_conv, p, bs, loss_name, lr, wd, 
             end_of_training_day, training_validation_length_days, tv_ratio):
     '''Run individual training task. Called by Train_CONV2D'''
     
@@ -61,9 +67,7 @@ def _train_(rank,
     logging.info('rank: {}, Generating train_valid_set'.format(rank))
     Dataset = Dataset_np
     # initialize dataset object containing training datasets
-    train_valid_set = Dataset(idx_include=train_valid_slice,
-                              vars_f06=vars_f06,vars_sfc=vars_sfc,vars_out=vars_out,
-                              trunc=trunc,)
+    train_valid_set = Dataset(idx_include=train_valid_slice,vars_out=vars_out,)
     
     input_size  = len(train_valid_set[0][0])
     output_size = len(train_valid_set[0][1])
@@ -77,6 +81,8 @@ def _train_(rank,
     random.shuffle(idx)
     train_inds = list(idx[0:round(len(train_valid_set)*training_to_validation_ratio)])
     valid_inds = list(idx[round(len(train_valid_set)*training_to_validation_ratio):])
+    train_inds.sort()
+    valid_inds.sort()
     logging.info("rank: {}, train_set time size: {}".format(rank, len(train_inds)))
     logging.info("rank: {}, valid_set time size: {}".format(rank, len(valid_inds)))
     
@@ -262,94 +268,47 @@ def _train_(rank,
 
 class Dataset_np(data.Dataset):
     '''Define and Preprocess input and output data'''
-    def __init__(self, idx_include=slice(40,None), # skip first 40 samples
-                       vars_f06='tpsuvq',
-                       vars_sfc='subset-cyc',
+    def __init__(self, idx_include=slice(0,None), # skip first 40 samples
                        vars_out='t',
-                       trunc='low',
                        **kwargs):
-        
-        t = time.time()
-        # slicing input forecast variables
-        if vars_f06 == 'tpsuvq':
-            slice_f06 = slice(0,509)
-        elif vars_f06 == 'tpsuvqp':
-            slice_f06 = slice(0,636)
-        elif vars_f06 == 'all':
-            slice_f06 = slice(0,1398)
-        
-        nbc = 21
-        # slicing input boundary variables
-        if vars_sfc == 'subset-alltl':
-            slice_sfc = slice(None,None)
-        elif vars_sfc == 'subset-cyc': # 509+21+7
-            slice_sfc = list(range(0,nbc))+list(range(nbc+1,nbc+8))
-        elif vars_sfc == 'cli': # 509+4
-            slice_sfc = [nbc,nbc+1]+[nbc+8,nbc+9]
-        elif vars_sfc == 'cyc': # 509+7 lats_m, lons_sin, lons_cos, day_sin, year_sin, day_cos, year_cos
-            slice_sfc = list(range(nbc+1,nbc+8))
-        elif vars_sfc == 'subset': # 509+21
-            slice_sfc = slice(0,nbc)
-        elif vars_sfc == 'online': # 'csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land' +7
-            slice_sfc = [14,15,16,17,18,19,20]+list(range(nbc+1,nbc+8))
-        
         # slicing output variables
         if vars_out == 't':
             slice_out = slice(0,127)
         elif vars_out == 'u':
-            slice_out = slice(127*1+1,127*2+1)
+            slice_out = slice(127*1,127*2)
         elif vars_out == 'v':
-            slice_out = slice(127*2+1,127*3+1)
+            slice_out = slice(127*2,127*3)
         elif vars_out == 'q':
-            slice_out = slice(127*3+1,127*4+1)
-        elif vars_out == 'p':
-            slice_out = slice(127*4+1,127*5+1)
-        elif vars_out == 'z':
-            slice_out = slice(127*5+1,127*6+1)
-        elif vars_out == 'oz':
-            slice_out = slice(127*6+1,127*7+1)
+            slice_out = slice(127*3,127*4)
+        elif vars_out == 'ps':
+            slice_out = slice(127*4,127*4+1)
         
-        ddd='/scratch2/NCEPDEV/stmp1/Tse-chun.Chen/anal_inc/npys/ifs' # dataset location
+        t = time.time()
             
         self.ins = []
-        # load data in memory map mode (allows slicing without actually loading the data)
+        # load data in np array and cast it as a torch object
         # 4D dataset [batch_size, channels, height, width]
-        f06_in = np.load(ddd+'_f06_ranl_'+trunc,mmap_mode='r')[idx_include,slice_f06]
-        sfc_in = np.load(ddd+'_sfc_ranl_'+trunc,mmap_mode='r')[idx_include,slice_sfc]
-        out    = np.load(ddd+'_out_ranl_'+trunc,mmap_mode='r')[idx_include,slice_out]
-        
+        #breakpoint()
+        f06_in = np.load(ddd+'_f06_ranl_sub')[idx_include]
+        self.ins = torch.from_numpy(np.copy(f06_in))
         self.ndates, _, self.nlat, self.nlon = f06_in.shape # get data shape
-        
-        # convert data from numpy to torch tensor
-        self.ins = [torch.from_numpy(np.copy(f06_in)),
-                    torch.from_numpy(np.copy(sfc_in))] 
-        self.ins = torch.cat(self.ins,1)
+        del(f06_in)
+
+        out    = np.load(ddd+'_out_ranl_sub')[idx_include,slice_out]
         self.out = torch.from_numpy(np.copy(out))
+        del(out)
         
         print('Channel in  size: {}'.format(self.ins.shape[1]))
         print('Channel out size: {}'.format(self.out.shape[1]))
         print('Time snapshots: {}'.format(self.ndates))
-        
-        # read precomputed mean and std for the input and output from numpy to torch tensor
-        mean_f06 = torch.from_numpy(np.load(ddd+'_f06_ranl_{}_mean_1d.npy'.format(trunc))[slice_f06])
-        std_f06  = torch.from_numpy(np.load(ddd+'_f06_ranl_{}_std_1d.npy'.format(trunc)) [slice_f06])
-        mean_sfc = torch.from_numpy(np.load(ddd+'_sfc_ranl_{}_mean_1d.npy'.format(trunc))[slice_sfc])
-        std_sfc  = torch.from_numpy(np.load(ddd+'_sfc_ranl_{}_std_1d.npy'.format(trunc)) [slice_sfc])
-        self.mean_in = torch.cat([mean_f06, mean_sfc],dim=0)[:,None,None]
-        self.std_in  = torch.cat([std_f06,  std_sfc], dim=0)[:,None,None]
-        self.mean_out= torch.from_numpy(np.load(ddd+'_out_ranl_{}_mean_1d.npy'.format(trunc))[slice_out,None,None])
-        self.std_out = torch.from_numpy(np.load(ddd+'_out_ranl_{}_std_1d.npy'.format(trunc)) [slice_out,None,None])
-            
-        self.ins = self.__normal_in__(self.ins)
-        self.out = self.__normal_out__(self.out)
         print('time preparing data: {}s'.format(time.time()-t))
         
     def __normal_in__(self,x):
         '''normalize input data'''
-        return (x - self.mean_in)/self.std_in
+        return x
     def __normal_out__(self,x):
         '''normalize output data'''
-        return (x - self.mean_out)/self.std_out
+        return x
     def __len__(self):
         '''get length of the training dataset'''
         return self.ndates
@@ -374,75 +333,6 @@ def check_gpu(rank):
     '''print memory usage of a gpu. bug in 1.7 segmentation fault when nothing was put in gpu'''
     logging.info('rank: {}: Allocated: {} GB'.format(rank,round(torch.cuda.memory_allocated(rank)/1024**3,1),))
     logging.info('rank: {}: Cached:    {} GB'.format(rank,round(torch.cuda.memory_reserved(rank)/1024**3,1),))
-
-def get_slice(vars_f06,vars_sfc,vars_out):
-    base_f_list = ['tmp','ugrd','vgrd','spfh','pressfc','dpres','dzdt','hgtsfc',
-                   'clwmr','dzdt','grle','icmr','o3mr','rwmr','snmr',]
-    if vars_f06 == 'tpsuvq':
-        slice_f06 = base_f_list[:5]
-    elif vars_f06 == 'tpsuvqp':
-        slice_f06 = base_f_list[:6]
-    elif vars_f06 == 'all':
-        slice_f06 = base_f_list
-
-    #nbc = 21
-    base_s_list = ['acond','evcw_ave','evbs_ave','sbsno_ave','snohf','snowc_ave',
-                   'ssrun_acc','trans_ave','tmpsfc','tisfc','spfh2m','pevpr_ave','sfcr',
-                   'albdo_ave','csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land']
-    if vars_sfc == 'subset-alltl':
-        slice_sfc    = base_s_list
-        slice_time   = slice(None,None)
-        slice_latlon = slice(None,None)
-    elif vars_sfc == 'subset-cyc':
-        slice_sfc    = base_s_list
-        slice_time   = slice(0,4)
-        slice_latlon = slice(2,None)
-    elif vars_sfc == 'cli':
-        slice_sfc    = []
-        slice_time   = slice(4,None)
-        slice_latlon = slice(0,2)
-    elif vars_sfc == 'cli-cyc':
-        slice_sfc    = []
-        slice_time   = slice(0,4)
-        slice_latlon = slice(2,None)
-    elif vars_sfc == 'subset':
-        slice_sfc    = base_s_list
-        slice_time   = slice(0,0)
-        slice_latlon = slice(0,0)
-    elif vars_sfc == 'all':
-        slice_sfc    = base_s_list
-        slice_time   = slice(0,0)
-        slice_latlon = slice(0,0)
-        
-    if vars_out == 't':
-        slice_out = ['tmp']
-    elif vars_out == 'u':
-        slice_out = ['ugrd']
-    elif vars_out == 'v':
-        slice_out = ['vgrd']
-    elif vars_out == 'q':
-        slice_out = ['spfh']
-    elif vars_out == 'ps':
-        slice_out = ['pressfc']
-        logging.warning("pressfc will result in nan because of the missing value in the inc_std file")
-        
-    return slice_f06, slice_sfc, slice_time, slice_latlon, slice_out
-
-def get_grids(sel_type=5):
-    if sel_type is None:
-        return slice(None),slice(None)
-    elif isinstance(sel_type, int):
-        itvl = int(384*sel_type/100)
-        i = np.random.randint(itvl)
-        return slice(i,None,itvl),slice(i,None,itvl)
-        #return np.random.choice(384,size=int(384*sel_type/100)), np.random.choice(768,size=int(768*sel_type/100))
-    elif isinstance(sel_type, slice):
-        return sel_type,sel_type
-    elif isinstance(sel_type, str):
-        lat_split, lon_split, cnt= list(map(int,sel_type.split("-")))
-        lat_size, lon_size = int(384/lat_split), int(768/lon_split)
-        lat_cnt, lon_cnt = np.unravel_index(cnt-1, (lat_split,lon_split)) # cnt starts from 1
-        return slice(lat_cnt*lat_size,(lat_cnt+1)*lat_size,None), slice(lon_cnt*lon_size,(lon_cnt+1)*lon_size,None)
 
 def get_time(date):
     # Prepare normalized Time input

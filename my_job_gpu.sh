@@ -8,17 +8,16 @@
 #salloc -t 8:0:0 -A gsienkf -p fgewf --qos=windfall -N 1
 
 
-cd /home/Sergey.Frolov/work/model_error/work/sliding_window
+cd /home/Sergey.Frolov/work/model_error/work/stefan_replay
 echo $PWD
 
 
 cd code
 echo $PWD
-ls
 source ./setenv.sh
 cd -
 
-$GPUPYTHON code/sequential_training.py
-#$GPUPYTHON code/batch_training.py
+#$GPUPYTHON code/sequential_training.py
+$GPUPYTHON batch_training.py
  
 
