@@ -8,11 +8,13 @@ import time
 end_day_postion_in_the_list=-3
 training_length_position_in_the_list=-2
 training_step_length=7
-starting_step = 14
-number_of_training_steps = 102
+starting_step = 365
+number_of_training_steps = 104
+
+SLIDING_WINDOW=True
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ptmp=[device, 't', 4, '1', '4096', 3, 0.25, 8, 'wnew', 0.0001, 1e-5, 'sub', 
+ptmp=[device, 't', 4, '1', '4096', 3, 0.25, 32, 'wnew', 0.0001, 1e-5, 
             starting_step, training_step_length, 0.7]
 print(ptmp)
 
@@ -27,7 +29,8 @@ for step in range(number_of_training_steps):
   #update training length
   fn_before = t.create_checkpoint_filename(ptmp[1:])
   ptmp[end_day_postion_in_the_list] = ptmp[end_day_postion_in_the_list] + training_step_length
-  ptmp[training_length_position_in_the_list] = ptmp[training_length_position_in_the_list] + training_step_length
+  if SLIDING_WINDOW: 
+      ptmp[training_length_position_in_the_list] = ptmp[training_length_position_in_the_list] + training_step_length
   fn_after = t.create_checkpoint_filename(ptmp[1:])
   print('rename {} -> {}'.format(fn_before, fn_after))
 

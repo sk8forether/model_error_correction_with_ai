@@ -24,7 +24,7 @@ import torch
 
 torch.set_num_threads(int(os.cpu_count()/2))
 
-ddd='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey2/ifs' # dir with normalizing mean/std
+ddd='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey3/ifs' # dir with normalizing mean/std
 def denormal_out(x, vars_out):
     if vars_out == 'T':
         slice_out = slice(0,127)
