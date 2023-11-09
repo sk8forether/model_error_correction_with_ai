@@ -13,10 +13,11 @@ ATM=True
 NORMALIZE=True
 
 dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'   # directory for input data
-npyDir=dataDir+'npys_sergey2/ifs'                            # output directory
+#npyDir=dataDir+'npys_sergey2/ifs'                            # output directory
+npyDir=dataDir+'../../Peter.Vaillancourt/Development/zarrtest'                            # output directory
 
 def preprocess():
-    '''preprocess the replay dataset from the nc files of reduced dataset into numpy arrays'''
+    '''preprocess the replay dataset from the nc files of reduced dataset into xarray using zarr'''
     
     time_scales=[1,365]                                                   # include hour of the day and day of the year info
     vars_in=['tmp','ugrd','vgrd','spfh','pressfc']                        # input forecast variables
