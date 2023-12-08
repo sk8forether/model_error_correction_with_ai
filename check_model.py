@@ -170,11 +170,11 @@ def model_to_nc(filename, if_return_nc=False, if_norm=True, ddd='./'):
       if  hyperparam['vars_out'] == 't':
         slice_out = slice(0,127)
       elif hyperparam['vars_out'] == 'u':
-        slice_out = slice(127*1+1,127*2+1)
+        slice_out = slice(127*1,127*2)
       elif hyperparam['vars_out'] == 'v':
-        slice_out = slice(127*2+1,127*3+1)
+        slice_out = slice(127*2,127*3)
       elif hyperparam['vars_out'] == 'q':
-        slice_out = slice(127*3+1,127*4+1)
+        slice_out = slice(127*3,127*4)
 
       ddd = '/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey3/'
       mean_in = np.load(ddd+'ifs_f06_ranl_sub_mean_1d.npy')
