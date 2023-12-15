@@ -270,7 +270,6 @@ class Dataset_np(data.Dataset):
     '''Define and Preprocess input and output data'''
     def __init__(self, idx_include=slice(0,None), 
                        vars_out='t',
-                       size="small",
                        **kwargs):
         # slicing output variables
         if vars_out == 't':
@@ -285,7 +284,15 @@ class Dataset_np(data.Dataset):
             slice_out = slice(127*4,127*4+1)
         
         t = time.time()
-            
+        if 'size' in locals():
+            #do nothing, use size specified
+            pass
+        else:
+            if len(range(*idx_include.indices(1000000)))<100:
+                size="small"
+            else:
+                size="large"
+
         self.ins = []
         # load data in np array and cast it as a torch object
         # 4D dataset [batch_size, channels, height, width]
