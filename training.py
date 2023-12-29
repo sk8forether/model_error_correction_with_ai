@@ -305,7 +305,6 @@ class Dataset_np(data.Dataset):
 
             f06_in = np.load(ddd+'_f06_ranl_sub',mmap_mode='r')[idx_include]
             self.ins = torch.from_numpy(np.copy(f06_in))
-            self.ndates, _, self.nlat, self.nlon = f06_in.shape # get data shape
             del(f06_in)
         else:
             out    = np.load(ddd+'_out_ranl_sub')
@@ -314,9 +313,8 @@ class Dataset_np(data.Dataset):
 
             f06_in = np.load(ddd+'_f06_ranl_sub')
             self.ins = torch.from_numpy(np.copy(f06_in[idx_include]))
-            self.ndates, _, self.nlat, self.nlon = f06_in.shape # get data shape
             del(f06_in)
-
+        self.ndates, _, self.nlat, self.nlon = self.ins.shape # get data shape
         
         print('Channel in  size: {}'.format(self.ins.shape[1]))
         print('Channel out size: {}'.format(self.out.shape[1]))
