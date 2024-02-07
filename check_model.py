@@ -170,13 +170,13 @@ def model_to_nc(filename, if_return_nc=False, if_norm=True, ddd='./'):
       if  hyperparam['vars_out'] == 't':
         slice_out = slice(0,127)
       elif hyperparam['vars_out'] == 'u':
-        slice_out = slice(127*1+1,127*2+1)
+        slice_out = slice(127*1,127*2)
       elif hyperparam['vars_out'] == 'v':
-        slice_out = slice(127*2+1,127*3+1)
+        slice_out = slice(127*2,127*3)
       elif hyperparam['vars_out'] == 'q':
-        slice_out = slice(127*3+1,127*4+1)
+        slice_out = slice(127*3,127*4)
 
-      ddd = '/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey2/'
+      ddd = '/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey3/'
       mean_in = np.load(ddd+'ifs_f06_ranl_sub_mean_1d.npy')
       std_in  = np.load(ddd+'ifs_f06_ranl_sub_std_1d.npy')
       mean_out = np.load(ddd+'ifs_out_ranl_sub_mean_1d.npy')[slice_out]
@@ -429,5 +429,35 @@ def sub_saliency(filename, if_renew=False):
     
     return J
     
+def my_eval_model(model, test_Loader):
+  with torch.set_grad_enabled(False):
+    model.eval()
+    for X, y in test_Loader:
+      y_pred = model(X)
+  return y_pred, y
+
+def compute_skill(y, y_pred):
+   y_pred_ts=y_pred.cpu().detach().numpy().view().reshape((y.shape[0], np.prod(y.shape[1:])))
+   y_ts=y.detach().numpy().view().reshape((y.shape[0], np.prod(y.shape[1:])))
+   skill = 1-np.mean((y_pred_ts-y_ts)**2,axis=1)/np.mean((y_ts)**2,axis=1)
+   return skill
+
+def load_linear(ts, y, start_day, end_day):
+    # ts -- np array of times
+    # y[len(ts),:] - array of true target states
+    # start_day -- start day for averaging y
+    # end_day -- end day for averaging y
+
+
+    y_shape=y.shape
+    y_pred_linear = np.empty(y_shape, dtype=np.single)
+        
+    #loop over 4 timeslots in one day
+    for offset in range(4):
+        y_avv=np.mean(y[np.where(ts==start_day)[0][0]+offset:np.where(ts==end_day)[0][0]:4],axis=0)
+        num_inserts=ts[offset:None:4].shape[0]
+        y_pred_linear[offset:None:4,...]=np.repeat(y_avv[np.newaxis,:,:,:],num_inserts,axis=0)
+
+    return y_pred_linear
 
     

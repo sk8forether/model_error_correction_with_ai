@@ -13,7 +13,7 @@ ATM=True
 NORMALIZE=True
 
 dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'   # directory for input data
-npyDir=dataDir+'npys_sergey2/ifs'                            # output directory
+npyDir=dataDir+'npys_sergey3/ifs'                            # output directory
 
 def preprocess():
     '''preprocess the replay dataset from the nc files of reduced dataset into numpy arrays'''
@@ -23,7 +23,7 @@ def preprocess():
     vars_out=['tmp','ugrd','vgrd','spfh','pressfc']                        # output variables
     sfc_vars=['csdlf','csdsf','csulf','csulftoa','csusf','csusftoa','land'] # boundary condition variables from surface file
 
-    dates = [d for d in pd.date_range('2018-01-01T00', '2019-12-31T18', freq='6H')]     # preprocess data range
+    dates = [d for d in pd.date_range('2018-01-01T00', '2020-12-31T12', freq='6H')]     # preprocess data range
     
     date_in=[] # container for time info
     for date in dates:

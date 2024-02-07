@@ -27,7 +27,7 @@ torch.set_num_threads(int(os.cpu_count()/2))
 
 # dataset location
 dataDir='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/'
-ddd=dataDir+'npys_sergey2/ifs'                            
+ddd=dataDir+'npys_sergey3/ifs'                            
 
 # Define training functions and utilities
 def Train_CONV2D(param_list):
@@ -268,7 +268,7 @@ def _train_(rank,
 
 class Dataset_np(data.Dataset):
     '''Define and Preprocess input and output data'''
-    def __init__(self, idx_include=slice(0,None), # skip first 40 samples
+    def __init__(self, idx_include=slice(0,None), 
                        vars_out='t',
                        **kwargs):
         # slicing output variables
@@ -284,19 +284,37 @@ class Dataset_np(data.Dataset):
             slice_out = slice(127*4,127*4+1)
         
         t = time.time()
-            
+        if 'size' in locals():
+            #do nothing, use size specified
+            pass
+        else:
+            if len(range(*idx_include.indices(1000000)))<100:
+                size="small"
+            else:
+                size="large"
+
         self.ins = []
         # load data in np array and cast it as a torch object
         # 4D dataset [batch_size, channels, height, width]
         #breakpoint()
-        f06_in = np.load(ddd+'_f06_ranl_sub')[idx_include]
-        self.ins = torch.from_numpy(np.copy(f06_in))
-        self.ndates, _, self.nlat, self.nlon = f06_in.shape # get data shape
-        del(f06_in)
 
-        out    = np.load(ddd+'_out_ranl_sub')[idx_include,slice_out]
-        self.out = torch.from_numpy(np.copy(out))
-        del(out)
+        if size=="small":
+            out    = np.load(ddd+'_out_ranl_sub',mmap_mode='r')[idx_include]
+            self.out = torch.from_numpy(np.copy(out[:,slice_out,:,:]))
+            del(out)
+
+            f06_in = np.load(ddd+'_f06_ranl_sub',mmap_mode='r')[idx_include]
+            self.ins = torch.from_numpy(np.copy(f06_in))
+            del(f06_in)
+        else:
+            out    = np.load(ddd+'_out_ranl_sub')
+            self.out = torch.from_numpy(np.copy(out[idx_include,slice_out,:,:]))
+            del(out)
+
+            f06_in = np.load(ddd+'_f06_ranl_sub')
+            self.ins = torch.from_numpy(np.copy(f06_in[idx_include]))
+            del(f06_in)
+        self.ndates, _, self.nlat, self.nlon = self.ins.shape # get data shape
         
         print('Channel in  size: {}'.format(self.ins.shape[1]))
         print('Channel out size: {}'.format(self.out.shape[1]))

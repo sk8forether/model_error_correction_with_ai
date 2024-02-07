@@ -24,16 +24,16 @@ import torch
 
 torch.set_num_threads(int(os.cpu_count()/2))
 
-ddd='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey2/ifs' # dir with normalizing mean/std
+ddd='/scratch2/BMC/gsienkf/Sergey.Frolov/fromStefan/npys_sergey3/ifs' # dir with normalizing mean/std
 def denormal_out(x, vars_out):
     if vars_out == 'T':
         slice_out = slice(0,127)
     elif vars_out == 'U':
-        slice_out = slice(127*1+1,127*2+1)
+        slice_out = slice(127*1,127*2)
     elif vars_out == 'V':
-        slice_out = slice(127*2+1,127*3+1)
+        slice_out = slice(127*2,127*3)
     elif vars_out == 'Q':
-        slice_out = slice(127*3+1,127*4+1)
+        slice_out = slice(127*3,127*4)
         
     mean_out= torch.from_numpy(np.load(ddd+'_out_ranl_{}_mean_1d.npy'.format(trunc))[slice_out,None,None])
     std_out = torch.from_numpy(np.load(ddd+'_out_ranl_{}_std_1d.npy'.format(trunc)) [slice_out,None,None])
